@@ -148,6 +148,40 @@ CREATE TABLE IF NOT EXISTS public.email_otps (
 
 CREATE INDEX IF NOT EXISTS idx_email_otps_email ON public.email_otps(email);
 
+CREATE TABLE IF NOT EXISTS public.password_reset_otps (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    otp_code TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_otps_email ON public.password_reset_otps(email);
+
+CREATE TABLE IF NOT EXISTS public.transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id TEXT NOT NULL UNIQUE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    plan subscription_plan NOT NULL,
+    billing_cycle TEXT NOT NULL DEFAULT 'monthly',
+    amount INTEGER NOT NULL,
+    fee INTEGER NOT NULL DEFAULT 0,
+    total_payment INTEGER NOT NULL,
+    payment_method TEXT NOT NULL DEFAULT 'qris',
+    qr_string TEXT,
+    txn_id TEXT,
+    status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'completed', 'canceled'
+    expired_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON public.transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_order_id ON public.transactions(order_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_txn_id ON public.transactions(txn_id);
+
 -- ------------------------------------------------------------------------------
 -- 4. FUNCTIONS & TRIGGERS
 -- ------------------------------------------------------------------------------
@@ -266,6 +300,8 @@ ALTER TABLE public.ai_models ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.discount_coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_otps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.password_reset_otps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
 -- ------------------------------------------------------------------------------
 -- RLS: PROFILES
@@ -408,6 +444,32 @@ CREATE POLICY "Admins can view email otps"
     USING (public.is_admin(auth.uid()));
 
 -- ------------------------------------------------------------------------------
+-- RLS: PASSWORD RESET OTPS (Server-Only Access)
+-- ------------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Admins can view password reset otps" ON public.password_reset_otps;
+CREATE POLICY "Admins can view password reset otps"
+    ON public.password_reset_otps FOR ALL
+    USING (public.is_admin(auth.uid()));
+
+-- ------------------------------------------------------------------------------
+-- RLS: TRANSACTIONS
+-- ------------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Users can view their own transactions" ON public.transactions;
+CREATE POLICY "Users can view their own transactions"
+    ON public.transactions FOR SELECT
+    USING (auth.uid() = user_id OR public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Users can insert their own transactions" ON public.transactions;
+CREATE POLICY "Users can insert their own transactions"
+    ON public.transactions FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admins can manage all transactions" ON public.transactions;
+CREATE POLICY "Admins can manage all transactions"
+    ON public.transactions FOR ALL
+    USING (public.is_admin(auth.uid()));
+
+-- ------------------------------------------------------------------------------
 -- 6. INITIAL SEED DATA
 -- ------------------------------------------------------------------------------
 
@@ -415,6 +477,7 @@ CREATE POLICY "Admins can view email otps"
 INSERT INTO public.system_settings (key, value, description, is_public)
 VALUES
     ('ai_config', '{"provider": "9router", "base_url": "https://api.9router.com/v1", "api_key": "", "temperature": 0.7, "max_tokens": 4096}'::jsonb, 'Konfigurasi AI Gateway 9router (Server-Only)', false),
+    ('pakasir_config', '{"slug": "prdgen", "api_key": "", "webhook_secret": "", "base_url": "https://app.pakasir.com"}'::jsonb, 'Konfigurasi Payment Gateway Pakasir v2 (Server-Only)', false),
     ('maintenance_mode', '{"enabled": false, "message": "Kami sedang melakukan peningkatan performa dan update model AI. PRDGen akan kembali aktif dalam beberapa menit.", "eta": "24 Sep 2026, 18:00 WIB"}'::jsonb, 'Status Maintenance Platform', true),
     ('general_settings', '{"site_name": "PRDGen", "free_quota": 3, "default_lang": "id", "allow_registration": true}'::jsonb, 'Pengaturan Umum Platform', true),
     ('pricing_plans', '{"basic_monthly": 99000, "vip_monthly": 249000, "enterprise_monthly": 799000, "yearly_discount_pct": 20}'::jsonb, 'Konfigurasi Harga Paket Berlangganan', true)

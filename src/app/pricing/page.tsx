@@ -2,12 +2,25 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Footer } from "@/components/footer";
 import { formatRupiah } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { QRISPaymentModal, QRISTransactionData } from "@/components/qris-payment-modal";
 
 export default function PricingPage() {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [isYearly, setIsYearly] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  // QRIS Modal State
+  const [qrisModalOpen, setQrisModalOpen] = useState(false);
+  const [qrisData, setQrisData] = useState<QRISTransactionData | null>(null);
+
   const [pricing, setPricing] = useState({
     basic_monthly: 99000,
     vip_monthly: 249000,
@@ -16,9 +29,21 @@ export default function PricingPage() {
   });
 
   useEffect(() => {
-    async function loadPricing() {
+    async function loadData() {
+      // 1. Check Session & Profile
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+        if (prof) setProfile(prof);
+      }
+
+      // 2. Load Pricing
       try {
-        const supabase = createClient();
         const { data } = await supabase
           .from("system_settings")
           .select("value")
@@ -33,8 +58,8 @@ export default function PricingPage() {
       }
     }
 
-    loadPricing();
-  }, []);
+    loadData();
+  }, [supabase]);
 
   const getPrice = (monthlyPrice: number) => {
     if (isYearly) {
@@ -44,8 +69,51 @@ export default function PricingPage() {
     return monthlyPrice;
   };
 
+  const handleCheckoutPlan = async (planKey: "basic" | "vip" | "enterprise") => {
+    if (!user) {
+      router.push(`/login?redirect=/pricing`);
+      return;
+    }
+
+    setLoadingPlan(planKey);
+
+    try {
+      const res = await fetch("/api/payment/create-qris", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: planKey,
+          billingCycle: isYearly ? "yearly" : "monthly",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal membuat transaksi QRIS.");
+      }
+
+      setQrisData(data.transaction);
+      setQrisModalOpen(true);
+    } catch (err: any) {
+      alert(err.message || "Gagal memproses pembayaran QRIS.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col animate-page-enter">
+      
+      {/* QRIS PAYMENT MODAL */}
+      <QRISPaymentModal
+        isOpen={qrisModalOpen}
+        onClose={() => setQrisModalOpen(false)}
+        data={qrisData}
+        onPaymentSuccess={() => {
+          if (profile) setProfile({ ...profile, plan: qrisData?.plan });
+        }}
+      />
+
       {/* HEADER */}
       <section className="pt-16 pb-12 px-4 md:px-8 text-center max-w-2xl mx-auto">
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-3">
@@ -123,12 +191,13 @@ export default function PricingPage() {
                 </li>
               </ul>
             </div>
-            <Link
-              href="/register?plan=basic"
-              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors"
+            <button
+              onClick={() => handleCheckoutPlan("basic")}
+              disabled={loadingPlan === "basic"}
+              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors disabled:opacity-50"
             >
-              Pilih Basic
-            </Link>
+              {loadingPlan === "basic" ? "Memproses..." : profile?.plan === "basic" ? "Paket Saat Ini" : "Pilih Basic (QRIS)"}
+            </button>
           </div>
 
           {/* VIP TIER (HIGHLIGHT) */}
@@ -183,12 +252,13 @@ export default function PricingPage() {
                 </li>
               </ul>
             </div>
-            <Link
-              href="/register?plan=vip"
-              className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-lg shadow-indigo-600/30"
+            <button
+              onClick={() => handleCheckoutPlan("vip")}
+              disabled={loadingPlan === "vip"}
+              className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-lg shadow-indigo-600/30 disabled:opacity-50"
             >
-              Mulai Paket VIP
-            </Link>
+              {loadingPlan === "vip" ? "Memproses..." : profile?.plan === "vip" ? "Paket Saat Ini" : "Bayar VIP dengan QRIS"}
+            </button>
           </div>
 
           {/* ENTERPRISE TIER */}
@@ -238,12 +308,13 @@ export default function PricingPage() {
                 </li>
               </ul>
             </div>
-            <Link
-              href="/register?plan=enterprise"
-              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors"
+            <button
+              onClick={() => handleCheckoutPlan("enterprise")}
+              disabled={loadingPlan === "enterprise"}
+              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors disabled:opacity-50"
             >
-              Pilih Enterprise
-            </Link>
+              {loadingPlan === "enterprise" ? "Memproses..." : profile?.plan === "enterprise" ? "Paket Saat Ini" : "Pilih Enterprise (QRIS)"}
+            </button>
           </div>
 
         </div>
@@ -265,7 +336,7 @@ export default function PricingPage() {
             <div className="p-4 bg-bg-surface border border-border rounded-lg">
               <div className="font-semibold text-white mb-1">Pembayarannya lewat apa saja?</div>
               <p className="text-muted">
-                Kami mendukung pembayaran melalui QRIS, Virtual Account Bank (BCA, Mandiri, BNI, BRI), dan Kartu Debit/Kredit.
+                Kami mendukung pembayaran instan melalui QRIS yang dapat di-scan dari aplikasi BCA, Mandiri, BNI, BRI, GoPay, OVO, ShopeePay, dan DANA.
               </p>
             </div>
             <div className="p-4 bg-bg-surface border border-border rounded-lg">

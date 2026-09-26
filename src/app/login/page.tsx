@@ -100,13 +100,12 @@ export default function LoginPage() {
               <label className="text-xs font-medium text-white" htmlFor="pwd">
                 Kata Sandi
               </label>
-              <button
-                type="button"
-                onClick={() => alert("Silakan hubungi admin atau gunakan fitur reset sandi Supabase.")}
-                className="text-[11px] text-indigo-400 hover:underline"
+              <Link
+                href="/forgot-password"
+                className="text-[11px] text-indigo-400 hover:text-indigo-300 hover:underline transition-colors"
               >
                 Lupa sandi?
-              </button>
+              </Link>
             </div>
             <input
               id="pwd"
