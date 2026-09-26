@@ -54,19 +54,28 @@ export async function POST(req: NextRequest) {
 
     const pricing = {
       basic_monthly: 99000,
+      basic_yearly: 79000,
       vip_monthly: 249000,
+      vip_yearly: 199000,
       enterprise_monthly: 799000,
+      enterprise_yearly: 639000,
       yearly_discount_pct: 20,
       ...(pricingData?.value as any || {}),
     };
 
-    let baseMonthlyAmount = pricing.basic_monthly;
-    if (plan === "vip") baseMonthlyAmount = pricing.vip_monthly;
-    if (plan === "enterprise") baseMonthlyAmount = pricing.enterprise_monthly;
-
-    let finalAmount = baseMonthlyAmount;
+    let finalAmount = Number(pricing.basic_monthly) || 99000;
     if (billingCycle === "yearly") {
-      finalAmount = Math.round(baseMonthlyAmount * (1 - pricing.yearly_discount_pct / 100));
+      if (plan === "basic") {
+        finalAmount = Number(pricing.basic_yearly) || Math.round((Number(pricing.basic_monthly) || 99000) * (1 - pricing.yearly_discount_pct / 100));
+      } else if (plan === "vip") {
+        finalAmount = Number(pricing.vip_yearly) || Math.round((Number(pricing.vip_monthly) || 249000) * (1 - pricing.yearly_discount_pct / 100));
+      } else if (plan === "enterprise") {
+        finalAmount = Number(pricing.enterprise_yearly) || Math.round((Number(pricing.enterprise_monthly) || 799000) * (1 - pricing.yearly_discount_pct / 100));
+      }
+    } else {
+      if (plan === "basic") finalAmount = Number(pricing.basic_monthly) || 99000;
+      if (plan === "vip") finalAmount = Number(pricing.vip_monthly) || 249000;
+      if (plan === "enterprise") finalAmount = Number(pricing.enterprise_monthly) || 799000;
     }
 
     // 2. Buat ID order unik berformat PRD-[TIMESTAMP]-[RANDOM]

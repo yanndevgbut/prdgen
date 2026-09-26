@@ -480,7 +480,7 @@ VALUES
     ('pakasir_config', '{"slug": "prdgen", "api_key": "", "webhook_secret": "", "base_url": "https://app.pakasir.com"}'::jsonb, 'Konfigurasi Payment Gateway Pakasir v2 (Server-Only)', false),
     ('maintenance_mode', '{"enabled": false, "message": "Kami sedang melakukan peningkatan performa dan update model AI. PRDGen akan kembali aktif dalam beberapa menit.", "eta": "24 Sep 2026, 18:00 WIB"}'::jsonb, 'Status Maintenance Platform', true),
     ('general_settings', '{"site_name": "PRDGen", "free_quota": 3, "default_lang": "id", "allow_registration": true}'::jsonb, 'Pengaturan Umum Platform', true),
-    ('pricing_plans', '{"basic_monthly": 99000, "vip_monthly": 249000, "enterprise_monthly": 799000, "yearly_discount_pct": 20}'::jsonb, 'Konfigurasi Harga Paket Berlangganan', true)
+    ('pricing_plans', '{"basic_monthly": 99000, "basic_yearly": 79000, "vip_monthly": 249000, "vip_yearly": 199000, "enterprise_monthly": 799000, "enterprise_yearly": 639000, "yearly_discount_pct": 20}'::jsonb, 'Konfigurasi Harga Paket Berlangganan', true)
 ON CONFLICT (key) DO NOTHING;
 
 -- 6.2 Default AI Models Seed

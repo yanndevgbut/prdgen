@@ -46,6 +46,22 @@ export async function PATCH(req: NextRequest) {
   const { id, status, plan, role } = await req.json();
   if (!id) return NextResponse.json({ error: "User ID required" }, { status: 400 });
 
+  // Proteksi akun admin: periksa data target user
+  const { data: targetProfile } = await auth.adminClient
+    .from("profiles")
+    .select("role, email")
+    .eq("id", id)
+    .single();
+
+  if (targetProfile?.role === "admin") {
+    if (status === "banned") {
+      return NextResponse.json(
+        { error: "Akun administrator dilindungi dan tidak dapat dinonaktifkan atau diban." },
+        { status: 403 }
+      );
+    }
+  }
+
   const updateData: any = { updated_at: new Date().toISOString() };
   if (status) updateData.status = status;
   if (plan) updateData.plan = plan;
@@ -77,6 +93,20 @@ export async function DELETE(req: NextRequest) {
 
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "User ID required" }, { status: 400 });
+
+  // Proteksi akun admin: periksa data target user
+  const { data: targetProfile } = await auth.adminClient
+    .from("profiles")
+    .select("role, email")
+    .eq("id", id)
+    .single();
+
+  if (targetProfile?.role === "admin") {
+    return NextResponse.json(
+      { error: "Akun administrator dilindungi dan tidak dapat dihapus demi keamanan sistem." },
+      { status: 403 }
+    );
+  }
 
   // Delete from auth.users (cascades to profiles & prds)
   const { error } = await auth.adminClient.auth.admin.deleteUser(id);

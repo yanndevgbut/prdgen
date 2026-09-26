@@ -23,8 +23,11 @@ export default function PricingPage() {
 
   const [pricing, setPricing] = useState({
     basic_monthly: 99000,
+    basic_yearly: 79000,
     vip_monthly: 249000,
+    vip_yearly: 199000,
     enterprise_monthly: 799000,
+    enterprise_yearly: 639000,
     yearly_discount_pct: 20,
   });
 
@@ -61,12 +64,14 @@ export default function PricingPage() {
     loadData();
   }, [supabase]);
 
-  const getPrice = (monthlyPrice: number) => {
+  const getPlanPrice = (planKey: "basic" | "vip" | "enterprise") => {
     if (isYearly) {
-      const discounted = monthlyPrice * (1 - pricing.yearly_discount_pct / 100);
-      return Math.round(discounted);
+      const yearlyVal = (pricing as any)[`${planKey}_yearly`];
+      if (yearlyVal) return Number(yearlyVal);
+      const monthlyVal = Number((pricing as any)[`${planKey}_monthly`]) || 99000;
+      return Math.round(monthlyVal * (1 - pricing.yearly_discount_pct / 100));
     }
-    return monthlyPrice;
+    return Number((pricing as any)[`${planKey}_monthly`]) || 99000;
   };
 
   const handleCheckoutPlan = async (planKey: "basic" | "vip" | "enterprise") => {
@@ -160,7 +165,7 @@ export default function PricingPage() {
               <div className="flex items-baseline gap-1 pb-5 mb-5 border-b border-border">
                 <span className="text-xs text-dim">Rp</span>
                 <span className="text-3xl font-extrabold text-white">
-                  {formatRupiah(getPrice(pricing.basic_monthly))}
+                  {formatRupiah(getPlanPrice("basic"))}
                 </span>
                 <span className="text-xs text-dim">/ bln</span>
               </div>
@@ -215,7 +220,7 @@ export default function PricingPage() {
               <div className="flex items-baseline gap-1 pb-5 mb-5 border-b border-border">
                 <span className="text-xs text-dim">Rp</span>
                 <span className="text-3xl font-extrabold text-white">
-                  {formatRupiah(getPrice(pricing.vip_monthly))}
+                  {formatRupiah(getPlanPrice("vip"))}
                 </span>
                 <span className="text-xs text-dim">/ bln</span>
               </div>
@@ -271,7 +276,7 @@ export default function PricingPage() {
               <div className="flex items-baseline gap-1 pb-5 mb-5 border-b border-border">
                 <span className="text-xs text-dim">Rp</span>
                 <span className="text-3xl font-extrabold text-white">
-                  {formatRupiah(getPrice(pricing.enterprise_monthly))}
+                  {formatRupiah(getPlanPrice("enterprise"))}
                 </span>
                 <span className="text-xs text-dim">/ bln</span>
               </div>

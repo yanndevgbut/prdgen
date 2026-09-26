@@ -62,8 +62,11 @@ export default function AdminPage() {
   // Pricing Form State
   const [pricing, setPricing] = useState({
     basic_monthly: 99000,
+    basic_yearly: 79000,
     vip_monthly: 249000,
+    vip_yearly: 199000,
     enterprise_monthly: 799000,
+    enterprise_yearly: 639000,
     yearly_discount_pct: 20,
   });
 
@@ -173,6 +176,10 @@ export default function AdminPage() {
 
   // User Actions
   const handleToggleBan = async (userItem: UserProfile) => {
+    if (userItem.role === "admin") {
+      alert("Akun administrator dilindungi dan tidak dapat dinonaktifkan atau diban.");
+      return;
+    }
     const nextStatus = userItem.status === "banned" ? "active" : "banned";
     try {
       const res = await fetch("/api/admin/users", {
@@ -180,7 +187,10 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: userItem.id, status: nextStatus }),
       });
-      if (!res.ok) throw new Error("Gagal mengubah status user");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal mengubah status user");
+      }
 
       setUsers((prev) =>
         prev.map((u) => (u.id === userItem.id ? { ...u, status: nextStatus } : u))
@@ -198,7 +208,10 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: userId, plan: newPlan }),
       });
-      if (!res.ok) throw new Error("Gagal mengubah paket user");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal mengubah paket user");
+      }
 
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, plan: newPlan as any } : u))
@@ -209,7 +222,11 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: string, name: string) => {
+  const handleDeleteUser = async (userId: string, name: string, role?: string) => {
+    if (role === "admin") {
+      alert("Akun administrator dilindungi dan tidak dapat dihapus demi keamanan sistem.");
+      return;
+    }
     if (!confirm(`Yakin ingin menghapus akun ${name}? Seluruh PRD milik user ini akan ikut terhapus permanen.`)) return;
 
     try {
@@ -218,7 +235,10 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: userId }),
       });
-      if (!res.ok) throw new Error("Gagal menghapus user");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal menghapus user");
+      }
 
       setUsers((prev) => prev.filter((u) => u.id !== userId));
       showToast(`User ${name} telah dihapus.`);
@@ -744,24 +764,30 @@ export default function AdminPage() {
                             </td>
                             <td className="p-3 text-dim text-[11px]">{formatDateIndo(u.created_at)}</td>
                             <td className="p-3 text-right">
-                              <div className="flex justify-end gap-1.5">
-                                <button
-                                  onClick={() => handleToggleBan(u)}
-                                  className={`px-2.5 py-1 border rounded text-[11px] font-medium transition-colors ${
-                                    u.status === "banned"
-                                      ? "border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
-                                      : "border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
-                                  }`}
-                                >
-                                  {u.status === "banned" ? "Unban" : "Ban"}
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteUser(u.id, u.full_name || u.email)}
-                                  className="px-2.5 py-1 border border-red-500/40 text-red-300 hover:bg-red-500/10 rounded text-[11px] font-medium transition-colors"
-                                >
-                                  Hapus
-                                </button>
-                              </div>
+                              {u.role === "admin" ? (
+                                <span className="text-[10px] text-indigo-300 font-semibold px-2 py-1 bg-indigo-500/10 border border-indigo-500/30 rounded inline-block">
+                                  Admin Terproteksi
+                                </span>
+                              ) : (
+                                <div className="flex justify-end gap-1.5">
+                                  <button
+                                    onClick={() => handleToggleBan(u)}
+                                    className={`px-2.5 py-1 border rounded text-[11px] font-medium transition-colors ${
+                                      u.status === "banned"
+                                        ? "border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+                                        : "border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
+                                    }`}
+                                  >
+                                    {u.status === "banned" ? "Unban" : "Ban"}
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteUser(u.id, u.full_name || u.email, u.role)}
+                                    className="px-2.5 py-1 border border-red-500/40 text-red-300 hover:bg-red-500/10 rounded text-[11px] font-medium transition-colors"
+                                  >
+                                    Hapus
+                                  </button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))
@@ -777,48 +803,109 @@ export default function AdminPage() {
               <div className="space-y-6">
                 <div>
                   <h1 className="text-xl font-bold text-white tracking-tight">Harga Paket & Promo</h1>
-                  <p className="text-xs text-muted">Ubah tarif langganan dan terbitkan kupon diskon.</p>
+                  <p className="text-xs text-muted">Ubah tarif langganan bulanan & tahunan dan terbitkan kupon diskon.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {/* EDIT PRICING */}
                   <div className="bg-bg-surface border border-border rounded-xl p-5">
-                    <h2 className="text-sm font-semibold text-white mb-1">Ubah Tarif Paket (Bulanan)</h2>
-                    <p className="text-xs text-muted mb-4">Pengaturan ini langsung tampil di halaman /pricing.</p>
+                    <h2 className="text-sm font-semibold text-white mb-1">Ubah Tarif Paket (Bulanan & Tahunan)</h2>
+                    <p className="text-xs text-muted mb-4">Pengaturan tarif langsung berlaku di halaman /pricing dan transaksi QRIS.</p>
 
-                    <form onSubmit={handleSavePricing} className="space-y-3">
+                    <form onSubmit={handleSavePricing} className="space-y-3.5">
+                      {/* Basic Plan */}
+                      <div className="p-3 bg-bg-input border border-border rounded-lg space-y-2">
+                        <div className="text-xs font-bold text-white">Paket Basic</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] text-muted mb-1">Bulanan (Rp)</label>
+                            <input
+                              type="number"
+                              value={pricing.basic_monthly}
+                              onChange={(e) => setPricing({ ...pricing, basic_monthly: Number(e.target.value) })}
+                              className="w-full px-2.5 py-1.5 bg-bg-surface border border-border rounded text-white text-xs outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-muted mb-1">Tahunan (Rp / bln)</label>
+                            <input
+                              type="number"
+                              value={pricing.basic_yearly}
+                              onChange={(e) => setPricing({ ...pricing, basic_yearly: Number(e.target.value) })}
+                              className="w-full px-2.5 py-1.5 bg-bg-surface border border-border rounded text-white text-xs outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* VIP Plan */}
+                      <div className="p-3 bg-bg-input border border-border rounded-lg space-y-2">
+                        <div className="text-xs font-bold text-indigo-300">Paket VIP</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] text-muted mb-1">Bulanan (Rp)</label>
+                            <input
+                              type="number"
+                              value={pricing.vip_monthly}
+                              onChange={(e) => setPricing({ ...pricing, vip_monthly: Number(e.target.value) })}
+                              className="w-full px-2.5 py-1.5 bg-bg-surface border border-border rounded text-white text-xs outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-muted mb-1">Tahunan (Rp / bln)</label>
+                            <input
+                              type="number"
+                              value={pricing.vip_yearly}
+                              onChange={(e) => setPricing({ ...pricing, vip_yearly: Number(e.target.value) })}
+                              className="w-full px-2.5 py-1.5 bg-bg-surface border border-border rounded text-white text-xs outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Enterprise Plan */}
+                      <div className="p-3 bg-bg-input border border-border rounded-lg space-y-2">
+                        <div className="text-xs font-bold text-white">Paket Enterprise</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] text-muted mb-1">Bulanan (Rp)</label>
+                            <input
+                              type="number"
+                              value={pricing.enterprise_monthly}
+                              onChange={(e) => setPricing({ ...pricing, enterprise_monthly: Number(e.target.value) })}
+                              className="w-full px-2.5 py-1.5 bg-bg-surface border border-border rounded text-white text-xs outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-muted mb-1">Tahunan (Rp / bln)</label>
+                            <input
+                              type="number"
+                              value={pricing.enterprise_yearly}
+                              onChange={(e) => setPricing({ ...pricing, enterprise_yearly: Number(e.target.value) })}
+                              className="w-full px-2.5 py-1.5 bg-bg-surface border border-border rounded text-white text-xs outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Yearly Discount Pct */}
                       <div>
-                        <label className="block text-xs text-muted mb-1">Paket Basic (Rp)</label>
+                        <label className="block text-xs text-muted mb-1">Badge Diskon Tahunan (%)</label>
                         <input
                           type="number"
-                          value={pricing.basic_monthly}
-                          onChange={(e) => setPricing({ ...pricing, basic_monthly: Number(e.target.value) })}
+                          min={0}
+                          max={100}
+                          value={pricing.yearly_discount_pct}
+                          onChange={(e) => setPricing({ ...pricing, yearly_discount_pct: Number(e.target.value) })}
                           className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none"
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs text-muted mb-1">Paket VIP (Rp)</label>
-                        <input
-                          type="number"
-                          value={pricing.vip_monthly}
-                          onChange={(e) => setPricing({ ...pricing, vip_monthly: Number(e.target.value) })}
-                          className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-muted mb-1">Paket Enterprise (Rp)</label>
-                        <input
-                          type="number"
-                          value={pricing.enterprise_monthly}
-                          onChange={(e) => setPricing({ ...pricing, enterprise_monthly: Number(e.target.value) })}
-                          className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none"
-                        />
-                      </div>
+
                       <button
                         type="submit"
                         className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-colors mt-2"
                       >
-                        Simpan Perubahan Harga
+                        Simpan Perubahan Tarif
                       </button>
                     </form>
                   </div>
