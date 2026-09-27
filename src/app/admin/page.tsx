@@ -37,6 +37,32 @@ interface DiscountCoupon {
   valid_until?: string;
 }
 
+interface AdminTransactionRecord {
+  id: string;
+  order_id: string;
+  user_id: string;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+  plan: string;
+  billing_cycle: string;
+  amount: number;
+  discount_amount?: number;
+  coupon_code?: string | null;
+  fee: number;
+  total_payment: number;
+  payment_method: string;
+  qr_string?: string | null;
+  txn_id?: string | null;
+  status: "pending" | "completed" | "canceled";
+  expired_at?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+  profiles?: {
+    full_name?: string | null;
+    email?: string | null;
+  } | null;
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -44,7 +70,7 @@ export default function AdminPage() {
   // Auth & Permissions
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "pricing" | "settings" | "logs">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "pricing" | "transactions" | "settings" | "logs">("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -52,12 +78,18 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [models, setModels] = useState<AIModel[]>([]);
   const [discounts, setDiscounts] = useState<DiscountCoupon[]>([]);
+  const [transactions, setTransactions] = useState<AdminTransactionRecord[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
 
   // User Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [planFilter, setPlanFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Transaction Filter State
+  const [txSearchQuery, setTxSearchQuery] = useState("");
+  const [txStatusFilter, setTxStatusFilter] = useState("all");
+  const [checkingTxnId, setCheckingTxnId] = useState<string | null>(null);
 
   // Pricing Form State
   const [pricing, setPricing] = useState({
@@ -169,9 +201,89 @@ export default function AdminPage() {
           if (s.key === "general_settings") setGeneralSettings((prev) => ({ ...prev, ...s.value }));
         });
       }
+
+      // 6. Fetch Transactions
+      const resTx = await fetch("/api/admin/transactions");
+      const dataTx = await resTx.json();
+      if (dataTx.transactions) setTransactions(dataTx.transactions);
     } catch (err) {
       console.error("Error fetching admin data:", err);
     }
+  };
+
+  // Transaction Actions (Admin Pakasir Live Sync)
+  const handleAdminCheckTxStatus = async (orderId: string, txnId?: string | null) => {
+    setCheckingTxnId(orderId);
+    try {
+      const res = await fetch("/api/admin/transactions/check-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, txnId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || "Gagal memeriksa status ke Pakasir.");
+
+      showToast(data.message || `Status transaksi: ${data.status}`);
+
+      // Refresh list transaksi & users
+      const resTx = await fetch("/api/admin/transactions");
+      const dataTx = await resTx.json();
+      if (dataTx.transactions) setTransactions(dataTx.transactions);
+
+      const resUsers = await fetch("/api/admin/users");
+      const dataUsers = await resUsers.json();
+      if (dataUsers.users) setUsers(dataUsers.users);
+    } catch (err: any) {
+      alert(err.message || "Gagal memeriksa status pembayaran.");
+    } finally {
+      setCheckingTxnId(null);
+    }
+  };
+
+  const exportTransactionsCSV = () => {
+    const headers = [
+      "Order_ID",
+      "Tanggal",
+      "Nama_User",
+      "Email_User",
+      "Email_Checkout",
+      "No_WhatsApp",
+      "Paket",
+      "Siklus",
+      "Harga_Dasar",
+      "Potongan_Diskon",
+      "Kupon",
+      "Total_Bayar",
+      "Status",
+      "Txn_ID"
+    ];
+    const rows = transactions.map((t) => [
+      t.order_id,
+      t.created_at,
+      `"${t.profiles?.full_name || "Tanpa Nama"}"`,
+      t.profiles?.email || "",
+      t.customer_email || "",
+      `"${t.customer_phone || ""}"`,
+      t.plan,
+      t.billing_cycle,
+      t.amount,
+      t.discount_amount || 0,
+      t.coupon_code || "-",
+      t.total_payment,
+      t.status,
+      t.txn_id || "-"
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions_export_${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Data transaksi berhasil diekspor ke CSV!");
   };
 
   // User Actions
@@ -495,6 +607,17 @@ export default function AdminPage() {
     return matchQ && matchPlan && matchStatus;
   });
 
+  const filteredTransactions = transactions.filter((t) => {
+    const q = txSearchQuery.toLowerCase().trim();
+    const matchQ =
+      t.order_id.toLowerCase().includes(q) ||
+      (t.profiles?.full_name || "").toLowerCase().includes(q) ||
+      (t.customer_email || t.profiles?.email || "").toLowerCase().includes(q) ||
+      (t.customer_phone || "").includes(q);
+    const matchStatus = txStatusFilter === "all" || t.status === txStatusFilter;
+    return matchQ && matchStatus;
+  });
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center py-20 text-xs text-muted">
@@ -580,6 +703,15 @@ export default function AdminPage() {
             Harga & Diskon
           </div>
           <div
+            onClick={() => { setActiveTab("transactions"); setSidebarOpen(false); }}
+            className={`px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors flex justify-between items-center ${
+              activeTab === "transactions" ? "bg-bg-surface text-white border border-border font-semibold" : "text-muted hover:bg-bg-surface hover:text-white"
+            }`}
+          >
+            <span>Transaksi</span>
+            <span className="text-[10px] bg-white/10 px-1.5 py-0.2 rounded-full">{transactions.length}</span>
+          </div>
+          <div
             onClick={() => { setActiveTab("settings"); setSidebarOpen(false); }}
             className={`px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
               activeTab === "settings" ? "bg-bg-surface text-white border border-border font-semibold" : "text-muted hover:bg-bg-surface hover:text-white"
@@ -631,11 +763,13 @@ export default function AdminPage() {
                     <div className="text-[11px] text-indigo-400 mt-1">Akumulasi seluruh user</div>
                   </div>
                   <div className="bg-bg-surface border border-border rounded-xl p-4">
-                    <div className="text-xs text-muted mb-1">Model AI Aktif</div>
+                    <div className="text-xs text-muted mb-1">Transaksi Selesai</div>
                     <div className="text-2xl font-bold text-white">
-                      {models.filter((m) => m.is_active).length}
+                      {transactions.filter((t) => t.status === "completed").length}
                     </div>
-                    <div className="text-[11px] text-dim mt-1">Tersedia via 9router</div>
+                    <div className="text-[11px] text-emerald-400 mt-1 truncate">
+                      Rp {formatRupiah(transactions.filter((t) => t.status === "completed").reduce((sum, t) => sum + (t.total_payment || 0), 0))}
+                    </div>
                   </div>
                   <div className="bg-bg-surface border border-border rounded-xl p-4">
                     <div className="text-xs text-muted mb-1">Status Maintenance</div>
@@ -1016,7 +1150,129 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* ==================== TAB 4: PENGATURAN (AI & SISTEM) ==================== */}
+            {/* ==================== TAB 4: TRANSAKSI ==================== */}
+            {activeTab === "transactions" && (
+              <div className="space-y-5">
+                <div className="flex justify-between items-start flex-wrap gap-3">
+                  <div>
+                    <h1 className="text-xl font-bold text-white tracking-tight">Riwayat Transaksi Pembayaran</h1>
+                    <p className="text-xs text-muted">Pantau status pembayaran QRIS Pakasir, detail pembeli, dan konfirmasi pembayaran manual.</p>
+                  </div>
+                  <button
+                    onClick={exportTransactionsCSV}
+                    className="px-3.5 py-2 bg-bg-surface hover:text-white border border-border text-muted text-xs font-medium rounded-lg"
+                  >
+                    Ekspor Transaksi (.CSV)
+                  </button>
+                </div>
+
+                {/* Search & Filter */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={txSearchQuery}
+                    onChange={(e) => setTxSearchQuery(e.target.value)}
+                    placeholder="Cari Order ID, Nama, Email, atau No WhatsApp..."
+                    className="flex-1 px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none"
+                  />
+                  <select
+                    value={txStatusFilter}
+                    onChange={(e) => setTxStatusFilter(e.target.value)}
+                    className="px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none cursor-pointer"
+                  >
+                    <option value="all">Semua Status</option>
+                    <option value="completed">Selesai / Completed</option>
+                    <option value="pending">Menunggu / Pending</option>
+                    <option value="canceled">Batal / Canceled</option>
+                  </select>
+                </div>
+
+                {/* Transactions Table */}
+                <div className="bg-bg-surface border border-border rounded-xl overflow-x-auto">
+                  <table className="w-full text-left text-xs whitespace-nowrap">
+                    <thead>
+                      <tr className="border-b border-border bg-white/[0.02] text-dim uppercase text-[10px] tracking-wider">
+                        <th className="p-3 font-semibold">Order ID / Waktu</th>
+                        <th className="p-3 font-semibold">Detail Pembeli</th>
+                        <th className="p-3 font-semibold">Paket</th>
+                        <th className="p-3 font-semibold">Total Bayar</th>
+                        <th className="p-3 font-semibold">Status</th>
+                        <th className="p-3 font-semibold text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {filteredTransactions.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-6 text-center text-dim">
+                            Belum ada data transaksi yang sesuai.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredTransactions.map((t) => (
+                          <tr key={t.id} className="hover:bg-white/[0.015] align-top">
+                            <td className="p-3">
+                              <div className="font-mono font-semibold text-white text-[11px]">{t.order_id}</div>
+                              <div className="text-[10px] text-dim mt-0.5">{formatDateIndo(t.created_at)}</div>
+                            </td>
+                            <td className="p-3">
+                              <div className="font-semibold text-white">{t.profiles?.full_name || "Tanpa Nama"}</div>
+                              <div className="text-[11px] text-dim">Email Akun: {t.profiles?.email || "-"}</div>
+                              <div className="text-[11px] text-dim">Email Checkout: {t.customer_email || "-"}</div>
+                              <div className="text-[11px] text-indigo-300 font-mono">WA: {t.customer_phone || "-"}</div>
+                            </td>
+                            <td className="p-3">
+                              <div className="font-semibold text-indigo-300 uppercase text-[11px]">{t.plan}</div>
+                              <div className="text-[10px] text-dim capitalize">{t.billing_cycle === "yearly" ? "Tahunan" : "Bulanan"}</div>
+                              {t.coupon_code && (
+                                <div className="text-[10px] text-emerald-400 mt-0.5">Kupon: {t.coupon_code}</div>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              <div className="font-semibold text-white">Rp {formatRupiah(t.total_payment)}</div>
+                              {Number(t.discount_amount || 0) > 0 && (
+                                <div className="text-[10px] text-emerald-400">Diskon: -Rp {formatRupiah(Number(t.discount_amount || 0))}</div>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                  t.status === "completed"
+                                    ? "bg-emerald-500/20 text-emerald-300"
+                                    : t.status === "canceled"
+                                    ? "bg-red-500/20 text-red-300"
+                                    : "bg-amber-500/20 text-amber-300"
+                                }`}
+                              >
+                                {t.status === "completed" ? "Selesai" : t.status === "canceled" ? "Batal" : "Pending"}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right">
+                              {t.status === "pending" ? (
+                                <button
+                                  onClick={() => handleAdminCheckTxStatus(t.order_id, t.txn_id)}
+                                  disabled={checkingTxnId === t.order_id}
+                                  className="px-2.5 py-1 border border-primary/50 text-indigo-300 hover:bg-indigo-950/40 disabled:opacity-50 rounded text-[11px] font-medium transition-colors"
+                                >
+                                  {checkingTxnId === t.order_id ? "Memeriksa..." : "Cek Status"}
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-dim">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="text-[11px] text-dim">
+                  Catatan: Tombol "Cek Status" melakukan sinkronisasi langsung ke Pakasir API v2. Jika pembayaran terkonfirmasi lunas, paket akun user otomatis di-upgrade dan status transaksi berubah menjadi Selesai.
+                </div>
+              </div>
+            )}
+
+            {/* ==================== TAB 5: PENGATURAN (AI & SISTEM) ==================== */}
             {activeTab === "settings" && (
               <div className="space-y-6">
                 <div>

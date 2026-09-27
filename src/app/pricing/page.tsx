@@ -15,11 +15,10 @@ export default function PricingPage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [isYearly, setIsYearly] = useState(false);
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<"basic" | "vip" | "enterprise">("vip");
 
   // QRIS Modal State
   const [qrisModalOpen, setQrisModalOpen] = useState(false);
-  const [qrisData, setQrisData] = useState<QRISTransactionData | null>(null);
 
   const [pricing, setPricing] = useState({
     basic_monthly: 99000,
@@ -74,48 +73,28 @@ export default function PricingPage() {
     return Number((pricing as any)[`${planKey}_monthly`]) || 99000;
   };
 
-  const handleCheckoutPlan = async (planKey: "basic" | "vip" | "enterprise") => {
+  const handleOpenCheckout = (planKey: "basic" | "vip" | "enterprise") => {
     if (!user) {
       router.push(`/login?redirect=/pricing`);
       return;
     }
-
-    setLoadingPlan(planKey);
-
-    try {
-      const res = await fetch("/api/payment/create-qris", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan: planKey,
-          billingCycle: isYearly ? "yearly" : "monthly",
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal membuat transaksi QRIS.");
-      }
-
-      setQrisData(data.transaction);
-      setQrisModalOpen(true);
-    } catch (err: any) {
-      alert(err.message || "Gagal memproses pembayaran QRIS.");
-    } finally {
-      setLoadingPlan(null);
-    }
+    setSelectedPlanForCheckout(planKey);
+    setQrisModalOpen(true);
   };
 
   return (
     <div className="flex-1 flex flex-col animate-page-enter">
       
-      {/* QRIS PAYMENT MODAL */}
+      {/* QRIS PAYMENT & CHECKOUT MODAL */}
       <QRISPaymentModal
         isOpen={qrisModalOpen}
         onClose={() => setQrisModalOpen(false)}
-        data={qrisData}
+        selectedPlan={selectedPlanForCheckout}
+        billingCycle={isYearly ? "yearly" : "monthly"}
+        basePrice={getPlanPrice(selectedPlanForCheckout)}
+        userEmail={user?.email || ""}
         onPaymentSuccess={() => {
-          if (profile) setProfile({ ...profile, plan: qrisData?.plan });
+          if (profile) setProfile({ ...profile, plan: selectedPlanForCheckout });
         }}
       />
 
@@ -197,11 +176,10 @@ export default function PricingPage() {
               </ul>
             </div>
             <button
-              onClick={() => handleCheckoutPlan("basic")}
-              disabled={loadingPlan === "basic"}
-              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors disabled:opacity-50"
+              onClick={() => handleOpenCheckout("basic")}
+              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
             >
-              {loadingPlan === "basic" ? "Memproses..." : profile?.plan === "basic" ? "Paket Saat Ini" : "Pilih Basic (QRIS)"}
+              {profile?.plan === "basic" ? "Paket Saat Ini" : "Pilih Basic (QRIS)"}
             </button>
           </div>
 
@@ -258,11 +236,10 @@ export default function PricingPage() {
               </ul>
             </div>
             <button
-              onClick={() => handleCheckoutPlan("vip")}
-              disabled={loadingPlan === "vip"}
-              className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-lg shadow-indigo-600/30 disabled:opacity-50"
+              onClick={() => handleOpenCheckout("vip")}
+              className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-lg shadow-indigo-600/30 cursor-pointer"
             >
-              {loadingPlan === "vip" ? "Memproses..." : profile?.plan === "vip" ? "Paket Saat Ini" : "Bayar VIP dengan QRIS"}
+              {profile?.plan === "vip" ? "Paket Saat Ini" : "Bayar VIP dengan QRIS"}
             </button>
           </div>
 
@@ -314,11 +291,10 @@ export default function PricingPage() {
               </ul>
             </div>
             <button
-              onClick={() => handleCheckoutPlan("enterprise")}
-              disabled={loadingPlan === "enterprise"}
-              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors disabled:opacity-50"
+              onClick={() => handleOpenCheckout("enterprise")}
+              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
             >
-              {loadingPlan === "enterprise" ? "Memproses..." : profile?.plan === "enterprise" ? "Paket Saat Ini" : "Pilih Enterprise (QRIS)"}
+              {profile?.plan === "enterprise" ? "Paket Saat Ini" : "Pilih Enterprise (QRIS)"}
             </button>
           </div>
 

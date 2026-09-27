@@ -10,6 +10,11 @@ export interface QRISTransactionData {
   txnId: string;
   plan: string;
   billingCycle: string;
+  customerEmail: string;
+  customerPhone: string;
+  baseAmount: number;
+  discountAmount: number;
+  couponCode?: string | null;
   amount: number;
   fee: number;
   totalPayment: number;
@@ -20,51 +25,72 @@ export interface QRISTransactionData {
 interface QRISPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  data: QRISTransactionData | null;
+  selectedPlan: "basic" | "vip" | "enterprise";
+  billingCycle: "monthly" | "yearly";
+  basePrice: number;
+  userEmail?: string;
   onPaymentSuccess?: () => void;
 }
 
 export function QRISPaymentModal({
   isOpen,
   onClose,
-  data,
+  selectedPlan,
+  billingCycle,
+  basePrice,
+  userEmail = "",
   onPaymentSuccess,
 }: QRISPaymentModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  // Stage: 'form' (Stage 1) -> 'qris' (Stage 2)
+  const [stage, setStage] = useState<"form" | "qris">("form");
+
+  // Stage 1: Form Inputs
+  const [email, setEmail] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    percentage: number;
+    discountAmount: number;
+    finalAmount: number;
+  } | null>(null);
+
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [creatingQris, setCreatingQris] = useState(false);
+
+  // Stage 2: QRIS Active State
+  const [qrisData, setQrisData] = useState<QRISTransactionData | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [timeLeft, setTimeLeft] = useState<number>(15 * 60);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [manualChecking, setManualChecking] = useState(false);
+  const [manualStatusMsg, setManualStatusMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Generate QR image from qr_string
+  // Reset or setup when opened
   useEffect(() => {
-    if (data?.qrString) {
-      QRCode.toDataURL(data.qrString, {
-        width: 260,
-        margin: 1.5,
-        color: {
-          dark: "#000000",
-          light: "#ffffff",
-        },
-      })
-        .then((url) => setQrDataUrl(url))
-        .catch((err) => console.error("Gagal render QRIS:", err));
+    if (isOpen) {
+      setStage("form");
+      setEmail(userEmail || "");
+      setWhatsapp("");
+      setCouponCode("");
+      setAppliedCoupon(null);
+      setCouponError(null);
+      setFormError(null);
+      setCreatingQris(false);
+      setIsSuccess(false);
+      setIsExpired(false);
+      setManualStatusMsg(null);
     }
-
-    if (data?.expiredAt) {
-      const diff = Math.floor((new Date(data.expiredAt).getTime() - Date.now()) / 1000);
-      setTimeLeft(diff > 0 ? diff : 0);
-    } else {
-      setTimeLeft(15 * 60);
-    }
-
-    setIsSuccess(false);
-    setIsExpired(false);
-  }, [data]);
+  }, [isOpen, userEmail, selectedPlan, billingCycle]);
 
   // Lock body scroll
   useEffect(() => {
@@ -78,10 +104,122 @@ export function QRISPaymentModal({
     };
   }, [isOpen]);
 
-  // Countdown timer
+  // Calculate current price breakdown in Stage 1
+  const currentBasePrice = basePrice;
+  const currentDiscountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+  const currentTotalAmount = Math.max(500, currentBasePrice - currentDiscountAmount);
+
+  // Handle Validate Coupon
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    setCouponError(null);
+
+    try {
+      const res = await fetch("/api/payment/validate-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: couponCode.trim(),
+          plan: selectedPlan,
+          billingCycle: billingCycle,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Kode kupon tidak valid.");
+      }
+
+      setAppliedCoupon({
+        code: data.coupon.code,
+        percentage: data.coupon.percentage,
+        discountAmount: data.discountAmount,
+        finalAmount: data.finalAmount,
+      });
+    } catch (err: any) {
+      setCouponError(err.message || "Gagal menerapkan kupon.");
+      setAppliedCoupon(null);
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError(null);
+  };
+
+  // Submit Stage 1 -> Create QRIS Transaction
+  const handleSubmitOrderForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+
+    if (!email.trim()) {
+      setFormError("Harap masukkan alamat email Anda.");
+      return;
+    }
+
+    const cleanPhone = whatsapp.replace(/\D/g, "");
+    if (!cleanPhone || cleanPhone.length < 9) {
+      setFormError("Nomor WhatsApp minimal 9 digit angka.");
+      return;
+    }
+
+    setCreatingQris(true);
+
+    try {
+      const res = await fetch("/api/payment/create-qris", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: selectedPlan,
+          billingCycle: billingCycle,
+          email: email.trim(),
+          whatsapp: cleanPhone,
+          couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal membuat transaksi QRIS.");
+      }
+
+      setQrisData(data.transaction);
+      setStage("qris");
+
+      // Generate QR Code
+      if (data.transaction.qrString) {
+        const url = await QRCode.toDataURL(data.transaction.qrString, {
+          width: 260,
+          margin: 1.5,
+          color: {
+            dark: "#000000",
+            light: "#ffffff",
+          },
+        });
+        setQrDataUrl(url);
+      }
+
+      if (data.transaction.expiredAt) {
+        const diff = Math.floor((new Date(data.transaction.expiredAt).getTime() - Date.now()) / 1000);
+        setTimeLeft(diff > 0 ? diff : 15 * 60);
+      } else {
+        setTimeLeft(15 * 60);
+      }
+    } catch (err: any) {
+      setFormError(err.message || "Gagal memproses pembayaran QRIS.");
+    } finally {
+      setCreatingQris(false);
+    }
+  };
+
+  // Stage 2: Countdown Timer
   useEffect(() => {
-    if (!isOpen || isSuccess || timeLeft <= 0) {
-      if (timeLeft <= 0 && isOpen && !isSuccess) setIsExpired(true);
+    if (!isOpen || stage !== "qris" || isSuccess || timeLeft <= 0) {
+      if (timeLeft <= 0 && isOpen && stage === "qris" && !isSuccess) setIsExpired(true);
       return;
     }
 
@@ -97,15 +235,15 @@ export function QRISPaymentModal({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isOpen, isSuccess, timeLeft]);
+  }, [isOpen, stage, isSuccess, timeLeft]);
 
-  // Polling check payment status
+  // Stage 2: Auto-Polling (Interval 5 detik - safe from Pakasir rate limit 4s)
   useEffect(() => {
-    if (!isOpen || !data?.orderId || isSuccess || isExpired) return;
+    if (!isOpen || stage !== "qris" || !qrisData?.orderId || isSuccess || isExpired) return;
 
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/payment/check-status?orderId=${encodeURIComponent(data.orderId)}`);
+        const res = await fetch(`/api/payment/check-status?orderId=${encodeURIComponent(qrisData.orderId)}`);
         const statusData = await res.json();
 
         if (statusData?.status === "completed") {
@@ -118,12 +256,36 @@ export function QRISPaymentModal({
       } catch (err) {
         // Silent polling error
       }
-    }, 3500);
+    }, 5000);
 
     return () => clearInterval(pollInterval);
-  }, [isOpen, data, isSuccess, isExpired, onPaymentSuccess]);
+  }, [isOpen, stage, qrisData, isSuccess, isExpired, onPaymentSuccess]);
 
-  if (!isOpen || !data || !mounted) return null;
+  // Manual Check Status Button
+  const handleManualCheckStatus = async () => {
+    if (!qrisData?.orderId || manualChecking) return;
+    setManualChecking(true);
+    setManualStatusMsg(null);
+
+    try {
+      const res = await fetch(`/api/payment/check-status?orderId=${encodeURIComponent(qrisData.orderId)}`);
+      const statusData = await res.json();
+
+      if (statusData?.status === "completed") {
+        setIsSuccess(true);
+        if (onPaymentSuccess) onPaymentSuccess();
+      } else {
+        setManualStatusMsg("Status pembayaran masih menunggu. Silakan selesaikan pembayaran di aplikasi m-Banking/e-Wallet Anda.");
+        setTimeout(() => setManualStatusMsg(null), 4000);
+      }
+    } catch (err) {
+      setManualStatusMsg("Gagal memeriksa status. Silakan coba lagi.");
+    } finally {
+      setManualChecking(false);
+    }
+  };
+
+  if (!isOpen || !mounted) return null;
 
   const formatTimer = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -139,10 +301,10 @@ export function QRISPaymentModal({
         <div className="flex justify-between items-start pb-3.5 mb-4 border-b border-border">
           <div>
             <h3 className="text-base font-bold text-white tracking-tight">
-              Pembayaran QRIS
+              {stage === "form" ? "Konfirmasi Pemesanan" : "Pembayaran QRIS"}
             </h3>
             <p className="text-xs text-muted mt-0.5">
-              Paket <span className="text-indigo-300 font-semibold uppercase">{data.plan}</span> &bull; {data.billingCycle === "yearly" ? "Tahunan (Diskon 20%)" : "Bulanan"}
+              Paket <span className="text-indigo-300 font-semibold uppercase">{selectedPlan}</span> &bull; {billingCycle === "yearly" ? "Tahunan (Diskon 20%)" : "Bulanan"}
             </p>
           </div>
 
@@ -158,117 +320,259 @@ export function QRISPaymentModal({
           </button>
         </div>
 
-        {/* SUKSES SCREEN */}
-        {isSuccess ? (
-          <div className="py-8 text-center space-y-4 animate-scale-in">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto">
-              <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-            <div>
-              <h4 className="text-lg font-bold text-white mb-1">Pembayaran Berhasil!</h4>
-              <p className="text-xs text-muted max-w-xs mx-auto">
-                Akun Anda telah berhasil di-upgrade ke paket <strong className="text-indigo-300 uppercase">{data.plan}</strong>.
-              </p>
-            </div>
-            <div className="pt-3">
-              <button
-                onClick={() => {
-                  onClose();
-                  window.location.href = "/app";
-                }}
-                className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-600/30"
-              >
-                Buka Workspace Sekarang &rarr;
-              </button>
-            </div>
-          </div>
-        ) : isExpired ? (
-          /* EXPIRED SCREEN */
-          <div className="py-8 text-center space-y-4 animate-scale-in">
-            <div className="w-14 h-14 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto">
-              <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </div>
-            <div>
-              <h4 className="text-base font-bold text-white mb-1">Waktu Pembayaran Habis</h4>
-              <p className="text-xs text-muted max-w-xs mx-auto">
-                QRIS transaksi ini telah kedaluwarsa. Silakan lakukan pemesanan ulang untuk mendapatkan kode QR baru.
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-full py-2.5 bg-bg-surface hover:text-white border border-border text-muted text-xs font-semibold rounded-xl transition-colors"
-            >
-              Tutup
-            </button>
-          </div>
-        ) : (
-          /* QRIS ACTIVE PAYMENT VIEW */
-          <div className="space-y-4 overflow-y-auto">
-            
-            {/* Total Tagihan Box */}
-            <div className="p-3.5 bg-bg-input border border-border rounded-xl flex justify-between items-center">
-              <div>
-                <div className="text-[11px] text-dim font-medium uppercase tracking-wider">Total Tagihan:</div>
-                <div className="text-lg font-extrabold text-white">
-                  Rp {formatRupiah(data.totalPayment)}
-                </div>
+        {/* ================= TAHAP 1: FORM INPUT EMAIL, WA & KUPON ================= */}
+        {stage === "form" && (
+          <form onSubmit={handleSubmitOrderForm} className="space-y-4 overflow-y-auto animate-step-enter">
+            {formError && (
+              <div className="p-2.5 bg-red-950/30 border border-red-500/30 text-red-300 text-xs rounded-lg">
+                {formError}
               </div>
-              <div className="text-right">
-                <div className="text-[10px] text-dim font-medium">Batas Waktu:</div>
-                <div className="text-xs font-mono font-bold text-amber-400">
-                  {formatTimer(timeLeft)}
-                </div>
-              </div>
+            )}
+
+            {/* Input Email Manual */}
+            <div>
+              <label className="block text-xs font-semibold text-white mb-1" htmlFor="order-email">
+                Alamat Email Anda
+              </label>
+              <input
+                id="order-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nama@email.com"
+                className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+              />
+              <p className="text-[10px] text-dim mt-1">Invoice dan detail transaksi akan dikirimkan ke email ini.</p>
             </div>
 
-            {/* QRIS Code Image Container */}
-            <div className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-inner">
-              {qrDataUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={qrDataUrl}
-                  alt="QRIS Pembayaran"
-                  className="w-56 h-56 object-contain"
-                />
+            {/* Input WhatsApp */}
+            <div>
+              <label className="block text-xs font-semibold text-white mb-1" htmlFor="order-wa">
+                Nomor WhatsApp
+              </label>
+              <input
+                id="order-wa"
+                type="tel"
+                required
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                placeholder="misal: 081234567890"
+                className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors font-mono"
+              />
+              <p className="text-[10px] text-dim mt-1">Untuk konfirmasi pembayaran otomatis dan dukungan layanan.</p>
+            </div>
+
+            {/* Input Kode Diskon (Opsional) */}
+            <div>
+              <label className="block text-xs font-semibold text-white mb-1">
+                Kode Kupon Diskon (Opsional)
+              </label>
+              
+              {appliedCoupon ? (
+                <div className="p-2.5 bg-emerald-950/30 border border-emerald-500/40 rounded-lg flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-emerald-300 font-mono">{appliedCoupon.code}</span>
+                    <span className="text-emerald-400 text-[11px] ml-2 font-medium">
+                      Diskon {appliedCoupon.percentage}% (-Rp {formatRupiah(appliedCoupon.discountAmount)})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="text-[11px] text-red-300 hover:text-red-200 underline font-medium"
+                  >
+                    Hapus
+                  </button>
+                </div>
               ) : (
-                <div className="w-56 h-56 flex items-center justify-center text-xs text-slate-500 font-mono">
-                  Memuat QRIS...
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="misal: HEMAT20"
+                    className="flex-1 px-3 py-2 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none uppercase font-mono"
+                  />
+                  <button
+                    type="button"
+                    disabled={validatingCoupon || !couponCode.trim()}
+                    onClick={handleApplyCoupon}
+                    className="px-4 py-2 bg-bg-surface hover:bg-bg-hover disabled:opacity-50 border border-border text-white text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    {validatingCoupon ? "Memeriksa..." : "Terapkan"}
+                  </button>
                 </div>
               )}
-              <div className="text-[10px] text-slate-600 font-bold uppercase tracking-wider mt-1">
-                QRIS &bull; GPN &bull; Bank Indonesia
+
+              {couponError && (
+                <p className="text-[11px] text-red-400 mt-1">{couponError}</p>
+              )}
+            </div>
+
+            {/* Rincian Biaya Transparan */}
+            <div className="p-3.5 bg-bg-input border border-border rounded-xl space-y-1.5 text-xs">
+              <div className="flex justify-between text-muted">
+                <span>Harga Paket ({billingCycle === "yearly" ? "Tahunan" : "Bulanan"})</span>
+                <span className="text-white font-medium">Rp {formatRupiah(currentBasePrice)}</span>
+              </div>
+
+              {appliedCoupon && (
+                <div className="flex justify-between text-emerald-400 font-medium">
+                  <span>Potongan Kupon ({appliedCoupon.code})</span>
+                  <span>- Rp {formatRupiah(appliedCoupon.discountAmount)}</span>
+                </div>
+              )}
+
+              <div className="pt-2 mt-2 border-t border-border flex justify-between items-baseline font-bold">
+                <span className="text-white text-xs">Total Pembayaran:</span>
+                <span className="text-base text-primary-hover font-mono">
+                  Rp {formatRupiah(currentTotalAmount)}
+                </span>
               </div>
             </div>
 
-            {/* Status Live Polling Indicator */}
-            <div className="flex items-center justify-center gap-2 py-1.5 px-3 bg-bg-input border border-border rounded-lg text-xs text-muted">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              <span>Menunggu pembayaran Anda...</span>
+            {/* Actions */}
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 bg-bg-surface hover:text-white border border-border text-muted text-xs font-semibold rounded-xl transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={creatingQris}
+                className="flex-[2] py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-600/25"
+              >
+                {creatingQris ? "Menyiapkan QRIS..." : "Lanjut ke Pembayaran QRIS →"}
+              </button>
             </div>
+          </form>
+        )}
 
-            {/* Petunjuk Singkat */}
-            <div className="p-3 bg-bg-surface/50 border border-border rounded-lg text-[11px] text-dim space-y-1">
-              <div className="font-semibold text-muted">Cara Pembayaran:</div>
-              <ol className="list-decimal list-inside space-y-0.5 text-dim">
-                <li>Buka aplikasi BCA, Mandiri, GoPay, OVO, DANA, atau ShopeePay.</li>
-                <li>Pilih menu <strong>Scan QR / Bayar QRIS</strong>.</li>
-                <li>Arahkan kamera ke kode QR di atas & selesaikan pembayaran.</li>
-              </ol>
-            </div>
+        {/* ================= TAHAP 2: TAMPILAN QRIS PAKASIR ================= */}
+        {stage === "qris" && qrisData && (
+          <div className="space-y-4 overflow-y-auto animate-step-enter">
+            {/* SUKSES SCREEN */}
+            {isSuccess ? (
+              <div className="py-6 text-center space-y-3 animate-scale-in">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto">
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white mb-1">Pembayaran Berhasil Diterima!</h4>
+                  <p className="text-xs text-muted max-w-xs mx-auto">
+                    Paket akun Anda telah aktif sebagai <strong className="text-indigo-300 uppercase">{qrisData.plan}</strong>.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      onClose();
+                      window.location.href = "/app";
+                    }}
+                    className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-600/30"
+                  >
+                    Buka Workspace Sekarang →
+                  </button>
+                </div>
+              </div>
+            ) : isExpired ? (
+              /* EXPIRED SCREEN */
+              <div className="py-6 text-center space-y-3 animate-scale-in">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto">
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white mb-1">Waktu Pembayaran Habis</h4>
+                  <p className="text-xs text-muted max-w-xs mx-auto">
+                    QRIS transaksi ini telah kedaluwarsa. Silakan buat pesanan baru.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setStage("form")}
+                  className="w-full py-2.5 bg-bg-surface hover:text-white border border-border text-muted text-xs font-semibold rounded-xl transition-colors"
+                >
+                  Ulangi Pemesanan
+                </button>
+              </div>
+            ) : (
+              /* QRIS ACTIVE PAYMENT VIEW */
+              <div className="space-y-3.5">
+                {/* Total Tagihan Box */}
+                <div className="p-3 bg-bg-input border border-border rounded-xl flex justify-between items-center">
+                  <div>
+                    <div className="text-[10px] text-dim uppercase tracking-wider font-semibold">Total Tagihan:</div>
+                    <div className="text-base font-extrabold text-white">
+                      Rp {formatRupiah(qrisData.totalPayment)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-dim font-medium">Batas Waktu:</div>
+                    <div className="text-xs font-mono font-bold text-amber-400">
+                      {formatTimer(timeLeft)}
+                    </div>
+                  </div>
+                </div>
 
-            {/* Tombol Batal */}
-            <button
-              onClick={onClose}
-              className="w-full py-2 text-xs text-dim hover:text-muted transition-colors font-medium text-center"
-            >
-              Batalkan Transaksi
-            </button>
+                {/* QR Code Image Container */}
+                <div className="flex flex-col items-center justify-center p-3.5 bg-white rounded-xl shadow-inner">
+                  {qrDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={qrDataUrl}
+                      alt="QRIS Pembayaran"
+                      className="w-52 h-52 object-contain"
+                    />
+                  ) : (
+                    <div className="w-52 h-52 flex items-center justify-center text-xs text-slate-500 font-mono">
+                      Memuat QRIS...
+                    </div>
+                  )}
+                  <div className="text-[9px] text-slate-600 font-bold uppercase tracking-wider mt-1">
+                    QRIS &bull; GPN &bull; Bank Indonesia
+                  </div>
+                </div>
 
+                {/* Status Live Polling Indicator */}
+                <div className="flex items-center justify-center gap-2 py-1.5 px-3 bg-bg-input border border-border rounded-lg text-xs text-muted">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  <span>Menunggu pembayaran Anda...</span>
+                </div>
+
+                {manualStatusMsg && (
+                  <div className="p-2.5 bg-indigo-950/30 border border-indigo-500/30 text-indigo-300 text-xs rounded-lg text-center">
+                    {manualStatusMsg}
+                  </div>
+                )}
+
+                {/* Action Buttons in QRIS Screen */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStage("form")}
+                    className="flex-1 py-2 bg-bg-surface hover:text-white border border-border text-muted text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    ← Ubah Rincian
+                  </button>
+                  <button
+                    type="button"
+                    disabled={manualChecking}
+                    onClick={handleManualCheckStatus}
+                    className="flex-[1.5] py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    {manualChecking ? "Memeriksa..." : "Cek Status Pembayaran"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
