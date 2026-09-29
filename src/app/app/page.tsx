@@ -385,6 +385,7 @@ export default function WorkspacePage() {
         mode,
         modelOverride: selectedModelId,
         answers: answers,
+        questions: questions,
       };
 
       const res = await fetch("/api/ai/generate", {
@@ -1260,7 +1261,9 @@ export default function WorkspacePage() {
                         <div className="flex justify-between items-start flex-wrap gap-2 mb-2 pb-2 border-b border-border">
                           <div>
                             <div className="text-sm font-bold text-white">{phase.phaseTitle}</div>
-                            <div className="text-xs text-indigo-400 font-medium mt-0.5">{phase.timeline}</div>
+                            {phase.timeline && (
+                              <div className="text-xs text-indigo-400 font-medium mt-0.5">{phase.timeline}</div>
+                            )}
                           </div>
                           <span className="text-[10px] px-2 py-0.5 bg-primary/20 text-indigo-300 rounded font-semibold border border-primary/30">
                             Fase {pIdx + 1}
@@ -1552,7 +1555,9 @@ export default function WorkspacePage() {
                         <div className="flex justify-between items-start flex-wrap gap-2 mb-2 pb-2 border-b border-border">
                           <div>
                             <div className="text-sm font-bold text-white">{phase.phaseTitle}</div>
-                            <div className="text-xs text-indigo-400 font-medium mt-0.5">{phase.timeline}</div>
+                            {phase.timeline && (
+                              <div className="text-xs text-indigo-400 font-medium mt-0.5">{phase.timeline}</div>
+                            )}
                           </div>
                           <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-semibold border border-emerald-500/30">
                             Fase {pIdx + 1}

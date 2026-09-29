@@ -40,8 +40,8 @@ export async function getDynamicAIConfig(): Promise<AIConfig> {
   let baseUrl = process.env.NINEROUTER_BASE_URL || "https://api.9router.com/v1";
   let apiKey = process.env.NINEROUTER_API_KEY || "";
   let provider = "9router";
-  let temperature = 0.7;
-  let maxTokens = 6000;
+  let temperature = 0.3;
+  let maxTokens = 16000;
   let defaultModel = "gemini-1.5-pro-latest";
 
   try {
@@ -121,85 +121,32 @@ export async function generateDynamicQuestions(params: {
   const { client, config } = await create9routerClient();
   const modelToUse = params.modelOverride || config.defaultModel;
 
-  const systemPrompt = `Anda adalah Principal Product Manager dan System Analyst berpengalaman.
-Tugas Anda adalah menganalisis ide produk yang diberikan pengguna, lalu membuat antara 5 sampai 10 pertanyaan pendukung yang SANGAT RELEVAN, SPESIFIK, dan DISESUAIKAN dengan produk tersebut.
+  const systemPrompt = `Kamu asisten yang bantu user menyusun PRD.
 
-ATURAN WAJIB PEMBUATAN SOAL:
-1. BAHASA MUDAH DIMENGERTI: Gunakan bahasa Indonesia santai, jelas, dan tidak berbelit-belit.
-2. 1 KONTEKS PER SOAL (STRICT): JANGAN PERNAH menggabungkan dua topik/pertanyaan dalam satu nomor soal (contoh SALAH: "Siapa target user dan apa masalahnya?" -> contoh BENAR: buat satu soal tentang target user, dan satu soal terpisah tentang masalah yang ingin diselesaikan).
-3. JUMLAH PERTANYAAN: Buat antara 5 hingga 10 pertanyaan (sesuai kompleksitas produk).
-4. VARIASI 3 TIPE SOAL:
-   - type: "text" -> Pertanyaan yang butuh jawaban spesifik dan diketik manual.
-   - type: "single_select" -> Pertanyaan pilihan tunggal dengan 4 opsi pilihan relevan. Pengguna hanya memilih 1 opsi.
-   - type: "multi_select" -> Pertanyaan pilihan ganda dengan 4-6 opsi pilihan relevan. Pengguna bisa memilih lebih dari 1 opsi.
-5. JANGAN GUNAKAN EMOJI SAMA SEKALI.
+Tugas: baca ide produk user, lalu buat 5-8 pertanyaan lanjutan yang spesifik untuk produk itu.
 
-Format Output WAJIB HANYA berupa JSON valid array of objects (tanpa backtick markdown dan tanpa teks lain):
+Aturan bikin pertanyaan:
+- Pakai bahasa Indonesia santai, singkat, gampang dimengerti.
+- Satu pertanyaan = satu topik. Jangan gabung 2 topik jadi satu soal.
+- Pertanyaan harus nyambung dengan produk user, bukan pertanyaan umum.
+- Tanpa emoji.
+
+Tipe pertanyaan (pakai salah satu):
+- "text": jawaban diketik bebas.
+- "single_select": pilih 1 dari 4 opsi.
+- "multi_select": bisa pilih lebih dari 1 dari 4-6 opsi.
+
+Keluarkan HANYA JSON valid (tanpa penjelasan, tanpa backtick):
 [
-  {
-    "id": "target_user",
-    "type": "text",
-    "question": "1. Siapa target pengguna utama dari produk ini?",
-    "placeholder": "Contoh: Mahasiswa dan pekerja kantoran yang sering bepergian..."
-  },
-  {
-    "id": "core_problem",
-    "type": "text",
-    "question": "2. Apa masalah utama yang ingin diselesaikan?",
-    "placeholder": "Contoh: Pencatatan pengeluaran manual yang sering terlupa..."
-  },
-  {
-    "id": "platform_type",
-    "type": "single_select",
-    "question": "3. Platform utama apa yang ingin diprioritaskan?",
-    "options": [
-      "Aplikasi Web (Desktop & Mobile Browser)",
-      "Aplikasi Mobile (Android & iOS)",
-      "Bot / CLI / Integrasi Chat API",
-      "Kombinasi Web & Mobile App"
-    ]
-  },
-  {
-    "id": "tech_stack",
-    "type": "single_select",
-    "question": "4. Framework atau teknologi utama yang ingin digunakan?",
-    "options": [
-      "Next.js + Supabase (Fullstack Web)",
-      "Flutter / React Native (Mobile App)",
-      "Node.js API + PostgreSQL (Backend Service)",
-      "Python FastAPI + Cloud Database"
-    ]
-  },
-  {
-    "id": "mvp_features",
-    "type": "multi_select",
-    "question": "5. Fitur utama apa saja yang wajib ada di rilis awal (MVP)?",
-    "options": [
-      "Sistem Daftar & Masuk Akun",
-      "Pencarian & Filter Data",
-      "Pembayaran Otomatis",
-      "Notifikasi Pengingat",
-      "Dashboard Statistik"
-    ]
-  },
-  {
-    "id": "third_party",
-    "type": "multi_select",
-    "question": "6. Integrasi layanan eksternal apa saja yang dibutuhkan?",
-    "options": [
-      "Payment Gateway (QRIS / Bank Transfer)",
-      "Layanan Pengiriman / Kurir",
-      "Email & WhatsApp Gateway",
-      "Penyimpanan Cloud Storage"
-    ]
-  }
+  { "id": "singkat_1", "type": "text", "question": "Pertanyaan?", "placeholder": "Contoh jawaban..." },
+  { "id": "singkat_2", "type": "single_select", "question": "Pertanyaan?", "options": ["Opsi A", "Opsi B", "Opsi C", "Opsi D"] },
+  { "id": "singkat_3", "type": "multi_select", "question": "Pertanyaan?", "options": ["Opsi A", "Opsi B", "Opsi C", "Opsi D"] }
 ]`;
 
-  const userPrompt = `Ide Produk Pengguna:
-- Nama Produk: ${params.title}
-- Deskripsi Kebutuhan: ${params.description}
+  const userPrompt = `Nama produk: ${params.title}
+Deskripsi: ${params.description}
 
-Buatkan 5-10 pertanyaan terpandu (text, single_select, multi_select) dengan 1 konteks per soal khusus untuk produk ini tanpa emoji.`;
+Bikin 5-8 pertanyaan lanjutan khusus untuk produk di atas.`;
 
   try {
     const response = await client.chat.completions.create({
@@ -208,7 +155,7 @@ Buatkan 5-10 pertanyaan terpandu (text, single_select, multi_select) dengan 1 ko
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      temperature: 0.5,
+      temperature: 0.4,
       max_tokens: 2500,
     });
 
@@ -312,156 +259,135 @@ export async function generatePRDFromAI(params: {
   const { client, config } = await create9routerClient();
   const modelToUse = params.modelOverride || config.defaultModel;
 
-  const systemPrompt = `Anda adalah seorang Principal Product Manager dan Software Architect kelas dunia.
-Tugas Anda adalah menyusun dokumen Product Requirements Document (PRD) yang SANGAT DETAIL, MENDALAM, TERPERINCI, PROFESIONAL, KAYA PENJELASAN TEKNIS, dan MENGIKUTI STRUKTUR LENGKAP 14 BAB (13 Bab PRD + Bab 14 Roadmap).
+  const systemPrompt = `Kamu Product Manager yang bantu user bikin dokumen PRD.
 
-JANGAN PERNAH MENGGUNAKAN EMOJI SAMA SEKALI DALAM SELURUH DOKUMEN!
-Gunakan Bahasa Indonesia profesional yang lugas, terstruktur, tidak hemat kata, dan menjelaskan konteks dengan tuntas.
+CARA KERJA:
+- Pakai HANYA data dari user (nama produk, deskripsi, jawaban tanya jawab).
+- Jangan mengarang fitur atau menambah hal yang tidak diminta user.
+- Kalau ada info yang kurang, tulis "Belum ditentukan" di bagian Pertanyaan Terbuka. Jangan diisi asumsi.
+- Bahasa Indonesia santai tapi jelas. Hindari istilah kaku yang bikin bingung. Boleh pakai istilah teknis seperlunya.
+- Tanpa emoji.
 
-ATURAN STRUKTUR DOKUMEN WAJIB (Ikuti format di bawah 100%):
+IKUTI FORMAT INI PERSIS:
 
 # PRODUCT REQUIREMENTS DOCUMENT (PRD)
 
-## [NAMA_PRODUK]
+## [Nama Produk]
 
 **STATUS: DRAFT SEMENTARA**
 
 | | |
 | --- | --- |
-| **Nama Produk** | [NAMA_PRODUK_LENGKAP] |
+| **Nama Produk** | [nama produk] |
 | **Versi Dokumen** | v0.1 |
-| **Disusun oleh** | Tim Product & Engineering |
-| **Untuk** | Tim Pengembang & Stakeholder |
-| **Tanggal** | [TANGGAL_HARI_INI] |
-| **Dokumen Terkait** | Hasil Analisis Kebutuhan Awal & Tanya Jawab Teknis |
+| **Tanggal** | [tanggal hari ini] |
 
 ---
 
-# 1. Ringkasan Produk (Overview)
-[Tulis minimal 2-3 paragraf mendalam.
-Paragraf 1: Latar belakang kondisi operasional saat ini, kendala proses manual, inefisiensi, risiko kegagalan, dan pain point utama yang dihadapi pengguna/organisasi.
-Paragraf 2: Solusi sistematis yang akan dibangun. Jelaskan jenis arsitektur (Web, Mobile, REST API, Microservices), modul-modul inti, dan pendekatan sandboxing/keamanan jika relevan.
-Paragraf 3: Dampak strategis jangka panjang bagi efisiensi bisnis dan kesiapan operasional tim.]
+# 1. Ringkasan Produk
+Tulis 2 paragraf: (1) masalah yang mau diselesaikan, (2) solusi yang dibangun dan siapa penggunanya.
 
-# 2. Tujuan & Sasaran (Goals)
-[Tulis 4-6 poin bullet konkret mengenai outcome bisnis dan metrik kesuksesan terukur. Jangan hanya menulis nama fitur. Gunakan formula terukur, contoh:
-- Mempercepat waktu eksekusi proses bisnis dari X menit menjadi di bawah Y detik.
-- Mengurangi risiko human error dan potensi kebocoran data hingga 0% melalui validasi terisolasi.
-- Menyediakan transparansi audit log dan monitoring real-time dengan availability 99.9%.
-- Mengurangi beban kerja manual tim operasional hingga lebih dari 70%.]
+# 2. Tujuan & Sasaran
+Tulis 4-6 poin tujuan yang terukur, sesuai produk user. Bukan daftar fitur.
 
-# 3. Pengguna & Peran (Users & Roles)
-[Tulis satu bullet per peran secara mendalam:
-- **Nama Peran :** Rincian kewenangan, hak akses sistem, batasan privilege, dan aktivitas operasional utama yang dapat dilakukan.]
+# 3. Pengguna & Peran
+Tulis per peran: **Nama Peran :** penjelasan singkat hak akses dan aktivitasnya.
 
-# 4. Ruang Lingkup (Scope)
-
+# 4. Ruang Lingkup (MVP)
 ## 4.1 Termasuk (MVP)
-[Rincian kelompok fitur yang wajib selesai pada rilis perdana MVP:
-- Modul Inti: Penjelasan cakupan fitur MVP.
-- Mekanisme Otentikasi & Otorisasi.
-- Alur Pemrosesan Data & Integrasi Utama.
-- Sistem Logging & Penanganan Error Dasar.]
+Daftar fitur yang masuk rilis pertama.
+## 4.2 Di Luar Lingkup Awal
+Daftar hal yang ditunda ke fase berikutnya.
 
-## 4.2 Di Luar Lingkup Awal / Fase Lanjutan
-[Rangkuman fitur yang sengaja ditunda ke tahap berikutnya untuk menjaga kecepatan rilis MVP. Rujuk detailnya ke Bab 11.]
+# 5. Asumsi & Batasan
+Tulis 4-6 poin. Setiap poin diawali **[Asumsi]**.
 
-# 5. Asumsi & Batasan (Assumptions & Constraints)
-[Tulis 5-7 poin asumsi teknis dan batasan operasional. Setiap poin WAJIB diawali tag **[Asumsi]**, contoh:
-- **[Asumsi]** Lingkungan deployment menggunakan server Linux dengan alokasi resource minimal yang ditentukan.
-- **[Asumsi]** Koneksi jaringan pihak ketiga memiliki latency rata-rata di bawah ambang batas timeout.
-- **[Asumsi]** Batas timeout eksekusi sistem dibatasi maksimal X detik untuk mencegah resource exhaustion.]
-
-# 6. Kebutuhan Fungsional (Functional Requirements)
-[Wajib dipecah menjadi minimal 4 sampai 6 sub-bab modul logis (misal: 6.1 AUTH — Autentikasi & Hak Akses, 6.2 CORE — Pemrosesan Utama & Engine, 6.3 DATA — Validasi & Manajemen Data, 6.4 NOTIF — Notifikasi & Integrasi, 6.5 SYS — Manajemen Sistem & Daemon).
-Setiap sub-bab WAJIB berisi tabel Markdown lengkap dengan format:
+# 6. Kebutuhan Fungsional
+Bagi jadi 4-6 modul sesuai kebutuhan produk user (ambil nama modul dari fitur produk, jangan pakai contoh umum).
+Setiap modul berisi tabel seperti ini:
 | **ID** | **Kebutuhan Fungsional** | **Prioritas** |
 | --- | --- | --- |
-| **PREFIX-1** | Deskripsi kemampuan sistem/aktor secara detail dan jelas. | **Wajib** |
-| **PREFIX-2** | Deskripsi kebutuhan sistem dengan parameter batas dan validasi. | **Penting** |
-| **PREFIX-3** | Deskripsi kebutuhan lanjutan pendukung operasional. | **Fase 2** |
+| **PREFIX-1** | Penjelasan kemampuan sistem | **Wajib** |
 
-Catatan: Prefix adalah singkatan modul 3-4 huruf kapital (misal: AUTH, CORE, SYS, LOG, DASH). Prioritas hanya: **Wajib**, **Penting**, atau **Fase 2**.]
+PREFIX = singkatan nama modul (3-4 huruf kapital). Prioritas hanya: **Wajib**, **Penting**, atau **Fase 2**.
 
-# 7. Alur Pengguna Utama (Key User Flows)
-[Tulis minimal 3 sampai 4 sub-bab alur krusial:
-## 7.1 [Nama Alur Utama - Happy Path]
-[Tulis langkah 1 sampai 6+ secara kronologis dari perspektif user dan respons sistem. Sertakan perubahan status sistem dalam tanda kutip (misal: status pesan "Diproses", status autentikasi "Terverifikasi", status akhir "Selesai").]
+# 7. Alur Pengguna
+Wajib tulis 3 sub-bab persis dengan format ini:
+## 7.1 [Nama Alur Utama]
+1. Langkah pertama
+2. Langkah kedua
+(dst, tiap langkah sebut aktor/fitur nyata produk, sertakan status sistem dalam tanda kutip)
 
-## 7.2 [Nama Alur Pengecualian / Penanganan Masalah & Error Handling]
-[Tulis langkah penanganan kegagalan, validasi gagal, timeout, atau penolakan akses.]
+## 7.2 [Nama Alur Error / Pengecualian]
+1. Langkah penanganan gagal atau validasi gagal
 
-## 7.3 [Nama Alur Pemulihan / Revisi / Manajemen]
-[Tulis langkah operasional pembaruan atau pembatalan.]]
+## 7.3 [Nama Alur Revisi / Pembatalan]
+1. Langkah perubahan atau pembatalan
 
-# 8. Model Data (High-Level)
-[Tabel skema entitas database relasional yang tersirat dari kebutuhan fungsional.
-| **Entitas** | **Field Utama** | **Keterangan** |
-| --- | --- | --- |
-| nama_tabel | id (UUID), kolom_name (VARCHAR), status (ENUM), created_at (TIMESTAMP) | Penjelasan fungsi tabel dan relasi foreign key. |
-Field wajib memakai snake_case. Field milik fase lanjutan ditulis dalam [kurung siku].]
+# 8. Model Data
+Tabel entitas: | **Entitas** | **Field Utama** | **Keterangan** |
+Nama tabel dan field pakai snake_case. Sesuaikan dengan fitur produk user.
 
-# 9. Kebutuhan Non-Fungsional (Non-Functional Requirements)
-[Tulis poin-poin mendalam dengan pola "**Aspek :** Penjelasan teknis":
-- **Responsivitas :** Standar aksesibilitas dan dukungan perangkat.
-- **Keamanan & Hak Akses :** Mekanisme isolasi, enkripsi data in-transit dan at-rest, proteksi token.
-- **Skalabilitas :** Kapasitas penanganan beban concurrent request per detik.
-- **Performa :** Target latency respons API di bawah batas milidetik tertentu.
-- **Privasi Data :** Kepatuhan retensi data dan perlindungan informasi rahasia.]
+# 9. Kebutuhan Non-Fungsional
+Tulis poin dengan pola "**Aspek :** penjelasan". Minimal: Keamanan, Performa, Privasi Data.
 
 # 10. Integrasi Pihak Ketiga
-[Tabel Markdown:
-| **Layanan** | **Fungsi** | **Catatan** |
-Tuliskan library/service eksternal, API gateway, database provider, dll.]
+Tabel: | **Layanan** | **Fungsi** | **Catatan** |
 
-# 11. Fitur Usulan / Fase Lanjutan
-[Format per fitur:
-- **Nama Fitur.** Penjelasan manfaat bisnis, spesifikasi teknis ringkas, dan keterkaitannya dengan modul MVP.]
+# 11. Fitur Lanjutan
+Daftar fitur yang bisa ditambah nanti (di luar MVP).
 
-# 12. Pertanyaan Terbuka / TBD
-[Daftar hal-hal spesifikasi atau kebijakan yang belum diputuskan secara final untuk mencegah asumsi liar.]
+# 12. Pertanyaan Terbuka
+Daftar hal yang belum jelas atau belum diputuskan.
 
 # 13. Glosarium
-[Format:
-- **Istilah :** Definisi teknis dan domain bisnis dalam konteks sistem ini.]
+Daftar istilah penting: **Istilah :** definisi singkat.
 
-# 14. Roadmap Pengembangan & Sprint Breakdown
+# 14. Roadmap & Sprint
 
-## Fase 1: MVP Core (Sprint 1 - 2)
-- **Target:** Fondasi arsitektur database, otentikasi aman, dan pemrosesan alur kerja inti.
-- [ ] Task 1.1: Perancangan Skema Database, Relasi Entitas & Migration Script
-- [ ] Task 1.2: Implementasi Middleware Otorisasi, Enkripsi & Proteksi Akses
-- [ ] Task 1.3: Pembuatan Antarmuka Utama, Parser Payload & Form Input
-- [ ] Task 1.4: Integrasi Runner Terisolasi & Validasi Input
+## Fase 1: MVP Core (Sprint 1-2)
+- **Target:** pencapaian fase ini
+- [ ] Task 1.1: tugas pertama
+- [ ] Task 1.2: tugas kedua
 
-## Fase 2: Integrasi & Beta Release (Sprint 3 - 4)
-- **Target:** Integrasi pihak ketiga, sistem monitoring, logging terpusat, dan pengujian menyeluruh.
-- [ ] Task 2.1: Integrasi API Layanan Eksternal, Webhook Handler & Notifikasi
-- [ ] Task 2.2: Implementasi Logging Terstruktur, Status Dashboard & Health Check
-- [ ] Task 2.3: User Acceptance Testing (UAT), Penanganan Edge Cases & Bug Fixing
+## Fase 2: Integrasi & Beta (Sprint 3-4)
+- **Target:** pencapaian fase ini
+- [ ] Task 2.1: tugas
+- [ ] Task 2.2: tugas
 
-## Fase 3: Post-MVP & Scaling (Fase Lanjutan)
-- **Target:** Peningkatan performa, otomatisasi lanjutan, dan fitur skala enterprise.
-- [ ] Task 3.1: Optimalisasi Caching, Connection Pooling & Load Stress Testing
-- [ ] Task 3.2: Fitur Kolaborasi Multi-Role & Sistem Pelaporan Lanjutan
+## Fase 3: Fase Lanjutan
+- **Target:** pencapaian fase ini
+- [ ] Task 3.1: tugas
+- [ ] Task 3.2: tugas
 
 ---
-*Dokumen ini merupakan draft sementara dan dapat disesuaikan seiring pembahasan berkala.*`;
+Selesai.`;
 
   let detailedAnswersSection = "";
   if (params.answers && Object.keys(params.answers).length > 0) {
-    detailedAnswersSection = Object.entries(params.answers)
-      .map(([k, v]) => {
-        const valStr = Array.isArray(v) ? v.join(", ") : String(v || "-");
-        return `- **${k}:** ${valStr}`;
-      })
-      .join("\n");
+    if (params.questions && params.questions.length > 0) {
+      // Kirim pasangan pertanyaan + jawaban agar konteks jelas
+      detailedAnswersSection = params.questions
+        .map((q) => {
+          const answer = params.answers![q.id];
+          const valStr = Array.isArray(answer) ? answer.join(", ") : String(answer || "-");
+          return `- ${q.question}\n  Jawaban: ${valStr}`;
+        })
+        .join("\n");
+    } else {
+      detailedAnswersSection = Object.entries(params.answers)
+        .map(([k, v]) => {
+          const valStr = Array.isArray(v) ? v.join(", ") : String(v || "-");
+          return `- ${k}: ${valStr}`;
+        })
+        .join("\n");
+    }
   } else {
     detailedAnswersSection = `
-- **Target Pengguna:** ${params.targetAudience || "Sesuai kebutuhan produk"}
-- **Tech Stack:** ${params.techStack || "Modern web/mobile stack yang direkomendasikan"}
-- **Hosting/Server:** ${params.hosting || "Cloud hosting modern"}
-- **Integrasi Eksternal:** ${params.thirdParty || "Sesuai kebutuhan fitur"}`;
+- Target pengguna: ${params.targetAudience || "Belum ditentukan"}
+- Tech stack: ${params.techStack || "Belum ditentukan"}
+- Hosting/server: ${params.hosting || "Belum ditentukan"}
+- Integrasi eksternal: ${params.thirdParty || "Belum ditentukan"}`;
   }
 
   const currentDate = new Date().toLocaleDateString("id-ID", {
@@ -470,14 +396,14 @@ Tuliskan library/service eksternal, API gateway, database provider, dll.]
     year: "numeric",
   });
 
-  const userPrompt = `Nama Produk: ${params.title}
-Deskripsi Ide & Kebutuhan: ${params.description}
-Tanggal Dokumen: ${currentDate}
+  const userPrompt = `Nama produk: ${params.title}
+Deskripsi kebutuhan: ${params.description}
+Tanggal: ${currentDate}
 
-Detail Hasil Tanya Jawab Pengguna:
+Jawaban tanya jawab user:
 ${detailedAnswersSection}
 
-Susun dokumen PRD LENGKAP dengan seluruh 14 Bab di atas secara mendalam, terperinci, dan profesional. JANGAN gunakan emoji apa pun.`;
+Tulis dokumen PRD lengkap sesuai format. Sesuaikan semua isi dengan produk di atas.`;
 
   try {
     const response = await client.chat.completions.create({
@@ -490,7 +416,19 @@ Susun dokumen PRD LENGKAP dengan seluruh 14 Bab di atas secara mendalam, terperi
       max_tokens: config.maxTokens,
     });
 
-    const contentMarkdown = response.choices[0]?.message?.content || "";
+    const choice = response.choices[0];
+    const contentMarkdown = choice?.message?.content || "";
+
+    if (!contentMarkdown.trim()) {
+      throw new Error("AI tidak mengembalikan dokumen. Coba generate ulang.");
+    }
+
+    if (choice?.finish_reason === "length") {
+      console.warn("Output PRD terpotong karena batas token tercapai.");
+      throw new Error(
+        "Dokumen PRD terpotong karena batas token terlalu kecil. Naikkan Max Tokens di Admin Panel atau coba lagi."
+      );
+    }
 
     // Parse task list dari markdown
     const taskBreakdown: Array<{ task: string; done: boolean }> = [];
@@ -501,15 +439,6 @@ Susun dokumen PRD LENGKAP dengan seluruh 14 Bab di atas secara mendalam, terperi
         task: match[2].trim(),
         done: match[1].toLowerCase() === "x",
       });
-    }
-
-    if (taskBreakdown.length === 0) {
-      taskBreakdown.push(
-        { task: "Desain skema database & model data", done: false },
-        { task: "Implementasi antarmuka utama & API route", done: false },
-        { task: "Integrasi layanan pihak ketiga", done: false },
-        { task: "Pengujian & deployment", done: false }
-      );
     }
 
     return { contentMarkdown, taskBreakdown };
@@ -531,28 +460,27 @@ export async function revisePRDWithAI(params: {
   const { client, config } = await create9routerClient();
   const modelToUse = params.modelOverride || config.defaultModel;
 
-  const systemPrompt = `Anda adalah Principal Product Manager dan Software Architect.
-Tugas Anda adalah memperbarui dokumen PRD yang ada berdasarkan instruksi revisi dari pengguna.
-Anda memiliki akses ke seluruh dokumen termasuk Ringkasan, Kebutuhan Fungsional (Bab 6), Alur Pengguna (Bab 7), Model Data (Bab 8), dan Roadmap Pengembangan (Bab 14).
+  const systemPrompt = `Kamu editor dokumen PRD.
 
-JANGAN PERNAH MENGGUNAKAN EMOJI SAMA SEKALI!
+Tugas: ubah dokumen PRD sesuai instruksi revisi user.
 
-ATURAN REVISI:
-1. Pahami instruksi revisi secara menyeluruh.
-2. Jika instruksi berkaitan dengan alur (misal: "tambah alur refund" atau "ubah alur eksekusi"), perbarui Bab 7 dan Bab 6.
-3. Jika instruksi berkaitan dengan timeline/roadmap (misal: "prioritaskan payment di sprint 1" atau "tambahkan fase audit keamanan"), perbarui Bab 14 (Roadmap) dan kebutuhan terkait.
-4. Pertahankan seluruh 14 Bab dengan struktur format Markdown yang rapi, padat, dan konsisten.
-5. Keluarkan SELURUH dokumen PRD yang sudah direvisi secara lengkap.`;
+Aturan:
+- Hanya ubah bagian yang diminta. Bagian lain biarkan sama.
+- Jangan menambah fitur atau bab yang tidak diminta.
+- Kalau instruksi soal alur, ubah Bab 7 (dan Bab 6 bila perlu).
+- Kalau instruksi soal jadwal/roadmap, ubah Bab 14 (dan bab terkait).
+- Pertahankan struktur 14 bab dan format markdown yang sama.
+- Bahasa Indonesia santai tapi jelas. Tanpa emoji.
+- Keluarkan SELURUH dokumen yang sudah direvisi.`;
 
   const userPrompt = `Dokumen PRD saat ini:
---- START PRD ---
+--- AWAL PRD ---
 ${params.currentContent}
---- END PRD ---
+--- AKHIR PRD ---
 
-Instruksi Revisi dari Pengguna:
-"${params.revisionInstruction}"
+Instruksi revisi dari user: "${params.revisionInstruction}"
 
-Keluarkan dokumen PRD lengkap yang telah disesuaikan dengan instruksi revisi tersebut tanpa emoji.`;
+Tulis ulang seluruh dokumen PRD dengan perubahan sesuai instruksi di atas.`;
 
   try {
     const response = await client.chat.completions.create({
@@ -565,7 +493,15 @@ Keluarkan dokumen PRD lengkap yang telah disesuaikan dengan instruksi revisi ter
       max_tokens: config.maxTokens,
     });
 
-    const revisedMarkdown = response.choices[0]?.message?.content || params.currentContent;
+    const choice = response.choices[0];
+
+    if (choice?.finish_reason === "length") {
+      throw new Error(
+        "Hasil revisi terpotong karena batas token terlalu kecil. Naikkan Max Tokens di Admin Panel atau coba lagi."
+      );
+    }
+
+    const revisedMarkdown = choice?.message?.content || params.currentContent;
     return { revisedMarkdown };
   } catch (error: any) {
     console.error("Error revising PRD with 9router:", error);
@@ -574,136 +510,105 @@ Keluarkan dokumen PRD lengkap yang telah disesuaikan dengan instruksi revisi ter
 }
 
 /**
- * Helper Parser: Mengekstrak User Flows dari Bab 7 PRD Markdown
+ * Helper Parser: Mengekstrak Alur Pengguna dari Bab 7 PRD Markdown.
+ * Regex dibuat fleksibel agar cocok dengan berbagai variasi judul/format yang dihasilkan AI.
  */
 export function parseUserFlowsFromMarkdown(markdown: string): ParsedUserFlow[] {
   const flows: ParsedUserFlow[] = [];
-  
-  const bab7Match = markdown.match(/# 7\.\s*Alur Pengguna Utama([\s\S]*?)(?=# 8\.|\n# [0-9]+\.|$)/i);
-  if (!bab7Match) {
-    return [
-      {
-        title: "Alur Utama Produk (Happy Path)",
-        steps: [
-          'Pengguna membuka aplikasi dan masuk ke akun dengan status "Aktif"',
-          'Pengguna memilih item atau memasukkan data kebutuhan produk',
-          'Sistem memvalidasi input dan menampilkan status "Diproses"',
-          'Pengguna menyelesaikan konfirmasi dan sistem menghasilkan status "Selesai"',
-        ],
-      },
-      {
-        title: "Alur Pengecualian / Penanganan Masalah",
-        steps: [
-          'Pengguna mengajukan permintaan perubahan atau pembatalan',
-          'Sistem memverifikasi syarat dan mengubah status menjadi "Menunggu Peninjauan"',
-          'Sistem mengirimkan notifikasi status pembaruan kepada pengguna',
-        ],
-      },
-    ];
-  }
 
-  const bab7Content = bab7Match[1];
-  const subFlowRegex = /##\s*7\.\d+\s*([^\n]+)([\s\S]*?)(?=##\s*7\.\d+|$)/gi;
-  let subMatch;
+  // Cari Bab 7 dengan judul apa pun yang berkaitan dengan alur pengguna
+  const bab7Match =
+    markdown.match(/#\s*7\.\s*[^\n]*?(?:Alur|Flow)[^\n]*\n([\s\S]*?)(?=\n#\s*8\.|\n#\s*[0-9]+\.(?:\s|$)|\s*$)/i) ||
+    markdown.match(/#\s*7\.\s*([^\n]*)\n([\s\S]*?)(?=\n#\s*8\.|\n#\s*[0-9]+\.(?:\s|$)|\s*$)/i);
 
-  while ((subMatch = subFlowRegex.exec(bab7Content)) !== null) {
-    const title = subMatch[1].trim();
-    const body = subMatch[2];
-    const steps: string[] = [];
+  if (bab7Match) {
+    const bab7Content = bab7Match[bab7Match.length - 1];
 
-    const stepLineRegex = /^\s*\d+\.\s*(.+)$/gm;
-    let stepMatch;
-    while ((stepMatch = stepLineRegex.exec(body)) !== null) {
-      steps.push(stepMatch[1].trim());
+    // Sub-alur: ## / ### / 7.x dengan berbagai format
+    const subFlowRegex =
+      /#{2,4}\s*(?:7\.\d+[.:]?\s*)?([^\n]+)([\s\S]*?)(?=#{2,4}\s*(?:7\.\d+[.:]?\s*)?[^\n]+|$)/gi;
+    let subMatch;
+
+    while ((subMatch = subFlowRegex.exec(bab7Content)) !== null) {
+      const rawTitle = subMatch[1].trim();
+      // Lewati baris yang bukan judul alur (misal bold marker)
+      const title = rawTitle.replace(/\*\*/g, "").replace(/^[:.\s-]+/, "").trim();
+      if (!title) continue;
+
+      const body = subMatch[2];
+      const steps: string[] = [];
+
+      // Langkah: 1. / - / * / a. / "Langkah N:"
+      const stepRegex = /^\s*(?:\d+\.|[a-z]\.|[-*]|Langkah\s+\d+[:.])\s*(.+)$/gim;
+      let stepMatch;
+      while ((stepMatch = stepRegex.exec(body)) !== null) {
+        const stepText = stepMatch[1].replace(/\*\*/g, "").trim();
+        if (stepText) steps.push(stepText);
+      }
+
+      if (steps.length > 0) {
+        flows.push({ title, steps });
+      }
     }
-
-    if (steps.length > 0) {
-      flows.push({ title, steps });
-    }
-  }
-
-  if (flows.length === 0) {
-    flows.push({
-      title: "Alur Utama Transaksi",
-      steps: [
-        'User melakukan input dan memilih opsi fitur',
-        'Sistem memproses data dan menghasilkan status "Draf"',
-        'User melakukan verifikasi dan status berubah menjadi "Final"',
-      ],
-    });
   }
 
   return flows;
 }
 
 /**
- * Helper Parser: Mengekstrak Roadmap Pengembangan dari Bab 14 PRD Markdown
+ * Helper Parser: Mengekstrak Roadmap Pengembangan dari Bab 14 PRD Markdown.
+ * Regex dibuat fleksibel agar cocok dengan berbagai variasi judul/format.
  */
 export function parseRoadmapFromMarkdown(markdown: string): ParsedRoadmapPhase[] {
   const phases: ParsedRoadmapPhase[] = [];
 
-  const bab14Match = markdown.match(/# 14\.\s*Roadmap Pengembangan([\s\S]*?)(?=\n# [0-9]+\.|$)/i);
-  if (!bab14Match) {
-    return [
-      {
-        phaseTitle: "Fase 1: MVP Core Foundation",
-        timeline: "Sprint 1 - 2 (Bulan 1)",
-        milestones: ["Fondasi Database", "Autentikasi User", "Alur Kerja Utama MVP"],
-        tasks: [
-          { task: "Desain skema database & model data", done: true },
-          { task: "Implementasi antarmuka utama & API routes", done: true },
-          { task: "Setup proteksi autentikasi & middleware", done: false },
-        ],
-      },
-      {
-        phaseTitle: "Fase 2: Integrasi & Beta Release",
-        timeline: "Sprint 3 - 4 (Bulan 2)",
-        milestones: ["Integrasi Layanan Pihak Ketiga", "Dashboard Monitoring", "Beta Testing UAT"],
-        tasks: [
-          { task: "Integrasi API eksternal & webhook", done: false },
-          { task: "User Acceptance Testing (UAT)", done: false },
-        ],
-      },
-      {
-        phaseTitle: "Fase 3: Post-MVP & Scaling",
-        timeline: "Fase Lanjutan (Bulan 3+)",
-        milestones: ["Fitur Kolaborasi Tim", "Optimasi Performa", "Scale Out"],
-        tasks: [
-          { task: "Fitur multi-user & role permissions", done: false },
-          { task: "Optimasi caching & load testing", done: false },
-        ],
-      },
-    ];
-  }
+  const bab14Match =
+    markdown.match(/#\s*14\.\s*[^\n]*?(?:Roadmap|Sprint|Milestone)[^\n]*\n([\s\S]*?)(?=\n#\s*[0-9]+\.(?:\s|$)|\s*$)/i) ||
+    markdown.match(/#\s*14\.\s*([^\n]*)\n([\s\S]*?)(?=\n#\s*[0-9]+\.(?:\s|$)|\s*$)/i);
 
-  const bab14Content = bab14Match[1];
-  const phaseRegex = /##\s*([^\n]+)([\s\S]*?)(?=##\s*|$)/gi;
-  let phaseMatch;
+  if (bab14Match) {
+    const bab14Content = bab14Match[bab14Match.length - 1];
 
-  while ((phaseMatch = phaseRegex.exec(bab14Content)) !== null) {
-    const rawTitle = phaseMatch[1].trim();
-    const body = phaseMatch[2];
+    const phaseRegex = /#{2,4}\s*([^\n]+)([\s\S]*?)(?=#{2,4}\s*[^\n]+|$)/gi;
+    let phaseMatch;
 
-    let timeline = "Sprint Terjadwal";
-    const targetMatch = body.match(/- \*\*Target:\*\*\s*([^\n]+)/i);
-    const milestones = targetMatch ? targetMatch[1].split(/,|dan/i).map((s) => s.trim()) : [];
+    while ((phaseMatch = phaseRegex.exec(bab14Content)) !== null) {
+      const rawTitle = phaseMatch[1].replace(/\*\*/g, "").replace(/^[:.\s-]+/, "").trim();
+      if (!rawTitle) continue;
 
-    const tasks: Array<{ task: string; done: boolean }> = [];
-    const taskRegex = /- \[( |x)\] (.*)/gi;
-    let tMatch;
-    while ((tMatch = taskRegex.exec(body)) !== null) {
-      tasks.push({
-        task: tMatch[2].trim(),
-        done: tMatch[1].toLowerCase() === "x",
-      });
+      const body = phaseMatch[2];
+
+      const targetMatch = body.match(/\*\*Target:?\*\*\s*([^\n]+)/i);
+      const milestones = targetMatch
+        ? targetMatch[1]
+            .split(/,|\bdan\b/i)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+
+      const tasks: Array<{ task: string; done: boolean }> = [];
+      const taskRegex = /-\s*\[( |x)\]\s*(.+)/gi;
+      let tMatch;
+      while ((tMatch = taskRegex.exec(body)) !== null) {
+        tasks.push({
+          task: tMatch[2].replace(/\*\*/g, "").trim(),
+          done: tMatch[1].toLowerCase() === "x",
+        });
+      }
+
+      // Hanya masukkan fase yang punya judul wajar (mengandung Fase/Sprint/Tahap atau punya task)
+      const looksLikePhase =
+        /fase|sprint|tahap|phase|milestone/i.test(rawTitle) || tasks.length > 0;
+
+      if (looksLikePhase) {
+        phases.push({
+          phaseTitle: rawTitle,
+          timeline: "",
+          milestones: milestones,
+          tasks: tasks,
+        });
+      }
     }
-
-    phases.push({
-      phaseTitle: rawTitle,
-      timeline: timeline,
-      milestones: milestones.length > 0 ? milestones : ["Milestone Fitur Utama"],
-      tasks: tasks.length > 0 ? tasks : [{ task: "Pengerjaan deliverables fase", done: false }],
-    });
   }
 
   return phases;
