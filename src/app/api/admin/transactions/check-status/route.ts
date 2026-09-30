@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { checkPakasirStatus } from "@/lib/payment/pakasir";
+import { checkPakasirStatus, getPakasirTransaction } from "@/lib/payment/pakasir";
 
 async function verifyAdmin() {
   const supabase = createClient();
@@ -189,6 +189,7 @@ export async function POST(req: NextRequest) {
 
   let finalStatus = transaction.status;
   let statusMessage = "Status saat ini: " + transaction.status;
+  let upstreamRaw: any = null;
 
   const targetTxnId = txnId || transaction.txn_id;
 
@@ -196,6 +197,13 @@ export async function POST(req: NextRequest) {
     try {
       const pakasirStatus = await checkPakasirStatus(targetTxnId);
       finalStatus = pakasirStatus.status;
+
+      // Ambil payload mentah untuk diagnostik (lihat persis respons Pakasir)
+      try {
+        upstreamRaw = await getPakasirTransaction(targetTxnId);
+      } catch (rawErr: any) {
+        upstreamRaw = { error: rawErr?.message || "Gagal ambil payload mentah" };
+      }
 
       if (pakasirStatus.status === "completed") {
         // Update database
@@ -256,5 +264,7 @@ export async function POST(req: NextRequest) {
     success: true,
     status: finalStatus,
     message: statusMessage,
+    upstreamRaw,
+    txnId: targetTxnId,
   });
 }

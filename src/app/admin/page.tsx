@@ -239,6 +239,15 @@ export default function AdminPage() {
 
       showToast(data.message || `Status transaksi: ${data.status}`);
 
+      // Tampilkan payload mentah Pakasir untuk diagnostik
+      if (data.upstreamRaw) {
+        console.log("[admin] Pakasir raw payload untuk", orderId, data.upstreamRaw);
+        const rawTxt = JSON.stringify(data.upstreamRaw, null, 2);
+        alert(
+          `DIAGNOSTIK PAKASIR\nOrder: ${orderId}\nTXN ID: ${data.txnId || "-"}\n\nPayload mentah:\n${rawTxt}`
+        );
+      }
+
       // Refresh list transaksi & users
       const resTx = await fetch("/api/admin/transactions");
       const dataTx = await resTx.json();

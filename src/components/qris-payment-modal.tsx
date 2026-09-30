@@ -66,7 +66,7 @@ export function QRISPaymentModal({
   // Stage 2: QRIS Active State
   const [qrisData, setQrisData] = useState<QRISTransactionData | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
-  const [timeLeft, setTimeLeft] = useState<number>(24 * 60 * 60);
+  const [timeLeft, setTimeLeft] = useState<number>(10 * 60);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
   const [manualChecking, setManualChecking] = useState(false);
@@ -216,9 +216,10 @@ export function QRISPaymentModal({
 
       if (data.transaction.expiredAt) {
         const diff = Math.floor((new Date(data.transaction.expiredAt).getTime() - Date.now()) / 1000);
-        setTimeLeft(diff > 0 ? diff : 24 * 60 * 60);
+        // Batas waktu kedaluwarsa QRIS adalah 10 menit (cap ke nilai dari Pakasir bila lebih pendek)
+        setTimeLeft(diff > 0 ? Math.min(diff, 10 * 60) : 10 * 60);
       } else {
-        setTimeLeft(24 * 60 * 60);
+        setTimeLeft(10 * 60);
       }
     } catch (err: any) {
       setFormError(err.message || "Gagal memproses pembayaran QRIS.");
@@ -227,21 +228,28 @@ export function QRISPaymentModal({
     }
   };
 
-  // Stage 2: Countdown Timer (hanya visual; tidak menghentikan polling)
-  // Pakasir baru membatalkan transaksi setelah 1x24 jam, jadi hitung mundur
-  // sampai 0 saja dan biarkan polling tetap berjalan sampai status terminal.
+  // Stage 2: Countdown Timer (10 menit) - saat habis, QRIS dianggap kedaluwarsa
   useEffect(() => {
-    if (!isOpen || stage !== "qris" || isSuccess || timeLeft <= 0) return;
+    if (!isOpen || stage !== "qris" || isSuccess || timeLeft <= 0) {
+      if (timeLeft <= 0 && isOpen && stage === "qris" && !isSuccess) setIsExpired(true);
+      return;
+    }
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          setIsExpired(true);
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     return () => clearInterval(timer);
   }, [isOpen, stage, isSuccess, timeLeft]);
 
   // Stage 2: Auto-Polling (Interval 5 detik - safe from Pakasir rate limit 4s)
-  // Terus polling sampai server mengembalikan status terminal (completed/canceled).
   useEffect(() => {
     if (!isOpen || stage !== "qris" || !qrisData?.orderId || isSuccess || isExpired) return;
 
@@ -555,9 +563,9 @@ export function QRISPaymentModal({
                   </svg>
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-white mb-1">Transaksi Dibatalkan / Kedaluwarsa</h4>
+                  <h4 className="text-base font-bold text-white mb-1">Waktu Pembayaran Habis</h4>
                   <p className="text-xs text-muted max-w-xs mx-auto">
-                    Transaksi ini telah dibatalkan di sistem pembayaran. Silakan buat pesanan baru.
+                    Batas waktu pembayaran QRIS (10 menit) telah habis. Silakan buat pesanan baru.
                   </p>
                 </div>
                 <button
