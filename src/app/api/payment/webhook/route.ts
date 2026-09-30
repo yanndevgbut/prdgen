@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { txn_id, order_id, status, completed_at } = body;
+    const { txn_id, order_id, status, completed_at, amount, is_sandbox } = body;
 
     if (!order_id) {
       return NextResponse.json({ error: "Missing order_id" }, { status: 400 });
@@ -34,8 +34,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
     }
 
+    // 2b. Idempoten: kalau sudah lunas, jangan proses ulang
+    if (transaction.status === "completed") {
+      return NextResponse.json({ success: true, message: "Already completed" });
+    }
+
+    // 2c. Verifikasi amount cocok (saran resmi Pakasir)
+    if (amount !== undefined && Number(amount) !== Number(transaction.total_payment)) {
+      console.error(
+        `Webhook amount tidak cocok untuk ${order_id}: webhook=${amount}, db=${transaction.total_payment}`
+      );
+      return NextResponse.json({ error: "Amount mismatch" }, { status: 400 });
+    }
+
     // 3. Jika status adalah completed, perbarui transaksi & upgrade paket user
     if (status === "completed") {
+      console.log("[webhook] completed diterima:", { order_id, txn_id, amount, completed_at });
       // Update status transaksi
       await adminSupabase
         .from("transactions")
@@ -43,6 +57,7 @@ export async function POST(req: NextRequest) {
           status: "completed",
           txn_id: txn_id || transaction.txn_id,
           completed_at: completed_at || new Date().toISOString(),
+          is_sandbox: is_sandbox !== undefined ? Boolean(is_sandbox) : transaction.is_sandbox,
           updated_at: new Date().toISOString(),
         })
         .eq("id", transaction.id);

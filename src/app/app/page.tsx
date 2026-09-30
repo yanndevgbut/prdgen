@@ -157,6 +157,27 @@ export default function WorkspacePage() {
 
       if (prof) setProfile(prof);
 
+      // 1b. Rekonsiliasi transaksi pending (bayar lalu tutup modal, dll)
+      try {
+        const resReconcile = await fetch("/api/payment/reconcile");
+        const dataReconcile = await resReconcile.json();
+        if (dataReconcile?.upgraded > 0) {
+          const { data: refreshed } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
+          if (refreshed) {
+            setProfile(refreshed);
+            showToast(
+              `Pembayaran terkonfirmasi. Paket ${(refreshed.plan || "").toUpperCase()} Anda telah aktif!`
+            );
+          }
+        }
+      } catch (err) {
+        console.warn("Gagal merekonsiliasi status pembayaran:", err);
+      }
+
       // 2. Load History PRDs
       const { data: prds } = await supabase
         .from("prds")
