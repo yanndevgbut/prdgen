@@ -175,12 +175,25 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     payment_method TEXT NOT NULL DEFAULT 'qris',
     qr_string TEXT,
     txn_id TEXT,
+    is_sandbox BOOLEAN NOT NULL DEFAULT false,
     status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'completed', 'canceled'
     expired_at TIMESTAMP WITH TIME ZONE,
     completed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
+
+-- Migrasi aman untuk instalasi lama yang tabelnya sudah ada
+ALTER TABLE public.transactions
+    ADD COLUMN IF NOT EXISTS is_sandbox BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.transactions
+    ADD COLUMN IF NOT EXISTS customer_email TEXT;
+ALTER TABLE public.transactions
+    ADD COLUMN IF NOT EXISTS customer_phone TEXT;
+ALTER TABLE public.transactions
+    ADD COLUMN IF NOT EXISTS discount_amount INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.transactions
+    ADD COLUMN IF NOT EXISTS coupon_code TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON public.transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_order_id ON public.transactions(order_id);

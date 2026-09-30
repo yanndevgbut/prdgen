@@ -74,7 +74,9 @@ export async function createPakasirQRIS(params: {
   const config = await getDynamicPakasirConfig();
 
   if (!config.apiKey || !config.slug) {
-    throw new Error("Kredensial Pakasir (SLUG atau API Key) belum dikonfigurasi.");
+    throw new Error(
+      "Kredensial Pakasir belum dikonfigurasi. Isi Slug & API Key di Admin > Pengaturan."
+    );
   }
 
   const endpoint = `${config.baseUrl.replace(/\/$/, "")}/api/v2/create-transaction/${encodeURIComponent(
@@ -93,11 +95,20 @@ export async function createPakasirQRIS(params: {
     }),
   });
 
-  const data = await response.json();
+  const responseText = await response.text();
+  let data: any = {};
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    data = { message: responseText };
+  }
 
   if (!response.ok) {
-    console.error("Pakasir API error response:", data);
-    throw new Error(data.message || data.error || "Gagal membuat transaksi QRIS di Pakasir.");
+    const detail = data?.message || data?.error || responseText || "tanpa keterangan";
+    console.error(`Pakasir create-transaction gagal (HTTP ${response.status}):`, detail);
+    throw new Error(
+      `Pakasir menolak pembuatan transaksi (HTTP ${response.status}): ${detail}`
+    );
   }
 
   return data as PakasirQRISResponse;
@@ -110,7 +121,9 @@ export async function checkPakasirStatus(txnId: string): Promise<PakasirStatusRe
   const config = await getDynamicPakasirConfig();
 
   if (!config.apiKey || !config.slug) {
-    throw new Error("Kredensial Pakasir belum dikonfigurasi.");
+    throw new Error(
+      "Kredensial Pakasir belum dikonfigurasi. Isi Slug & API Key di Admin > Pengaturan."
+    );
   }
 
   const endpoint = `${config.baseUrl.replace(/\/$/, "")}/api/v2/transaction-status/${encodeURIComponent(
@@ -125,12 +138,65 @@ export async function checkPakasirStatus(txnId: string): Promise<PakasirStatusRe
     cache: "no-store",
   });
 
-  const data = await response.json();
+  const responseText = await response.text();
+  let data: any = {};
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    data = { message: responseText };
+  }
 
   if (!response.ok) {
-    console.error("Pakasir status API error:", data);
-    throw new Error(data.message || "Gagal memeriksa status transaksi di Pakasir.");
+    const detail = data?.message || data?.error || responseText || "tanpa keterangan";
+
+    if (response.status === 429) {
+      throw new Error(
+        "Pakasir membatasi pengecekan status (maks 1 request per 4 detik). Sistem akan mencoba lagi otomatis."
+      );
+    }
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(
+        `Pakasir menolak akses (HTTP ${response.status}). Periksa Slug & API Key di Admin > Pengaturan.`
+      );
+    }
+    if (response.status === 404) {
+      throw new Error(
+        "Transaksi tidak ditemukan di Pakasir. Pastikan TXN ID dan Slug berasal dari project yang sama."
+      );
+    }
+
+    console.error(`Pakasir transaction-status gagal (HTTP ${response.status}):`, detail);
+    throw new Error(`Gagal cek status di Pakasir (HTTP ${response.status}): ${detail}`);
   }
 
   return data as PakasirStatusResponse;
+}
+
+/**
+ * Mengambil payload mentah transaksi dari Pakasir (untuk investigasi & diagnostics)
+ */
+export async function getPakasirTransaction(txnId: string): Promise<any> {
+  const config = await getDynamicPakasirConfig();
+
+  const endpoint = `${config.baseUrl.replace(/\/$/, "")}/api/v2/transaction-status/${encodeURIComponent(
+    config.slug
+  )}/${encodeURIComponent(txnId)}`;
+
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      "X-Api-Key": config.apiKey,
+    },
+    cache: "no-store",
+  });
+
+  const responseText = await response.text();
+  let data: any = {};
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    data = { message: responseText };
+  }
+
+  return { ok: response.ok, httpStatus: response.status, payload: data };
 }

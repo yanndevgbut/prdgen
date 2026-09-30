@@ -161,6 +161,7 @@ export async function POST(req: NextRequest) {
         payment_method: "qris",
         qr_string: pakasirRes.qr_string,
         txn_id: pakasirRes.txn_id,
+        is_sandbox: Boolean(pakasirRes.is_sandbox),
         status: "pending",
         expired_at: pakasirRes.expired_at,
       })
@@ -177,12 +178,14 @@ export async function POST(req: NextRequest) {
       action: "CREATE_QRIS_TRANSACTION",
       details: {
         order_id: orderId,
+        txn_id: pakasirRes.txn_id,
         plan,
         customer_email: cleanEmail,
         customer_phone: cleanPhone,
         amount: finalAmount,
         coupon_code: appliedCouponCode,
         total_payment: pakasirRes.total_payment,
+        is_sandbox: Boolean(pakasirRes.is_sandbox),
       },
     });
 
@@ -203,6 +206,7 @@ export async function POST(req: NextRequest) {
         totalPayment: pakasirRes.total_payment,
         qrString: pakasirRes.qr_string,
         expiredAt: pakasirRes.expired_at,
+        isSandbox: Boolean(pakasirRes.is_sandbox),
       },
     });
   } catch (err: any) {

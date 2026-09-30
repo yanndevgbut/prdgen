@@ -126,6 +126,19 @@ export default function AdminPage() {
     default_lang: "id",
   });
 
+  // Pakasir Payment Gateway Config (disimpan di system_settings: pakasir_config)
+  const [pakasirSettings, setPakasirSettings] = useState({
+    slug: "",
+    api_key: "",
+    webhook_secret: "",
+    base_url: "https://app.pakasir.com",
+  });
+  const [showPakasirKey, setShowPakasirKey] = useState(false);
+  const [showPakasirWebhook, setShowPakasirWebhook] = useState(false);
+  const [pakasirTesting, setPakasirTesting] = useState(false);
+  const [bulkSyncing, setBulkSyncing] = useState(false);
+  const [forcingId, setForcingId] = useState<string | null>(null);
+
   // New Discount Form
   const [newCouponCode, setNewCouponCode] = useState("");
   const [newCouponPct, setNewCouponPct] = useState(20);
@@ -199,6 +212,7 @@ export default function AdminPage() {
           if (s.key === "maintenance_mode") setMaintenanceSettings((prev) => ({ ...prev, ...s.value }));
           if (s.key === "pricing_plans") setPricing((prev) => ({ ...prev, ...s.value }));
           if (s.key === "general_settings") setGeneralSettings((prev) => ({ ...prev, ...s.value }));
+          if (s.key === "pakasir_config") setPakasirSettings((prev) => ({ ...prev, ...s.value }));
         });
       }
 
@@ -284,6 +298,126 @@ export default function AdminPage() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast("Data transaksi berhasil diekspor ke CSV!");
+  };
+
+  // ============== PAKASIR CONFIG ACTIONS ==============
+  const handleSavePakasirSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "pakasir_config", value: pakasirSettings }),
+      });
+      if (!res.ok) throw new Error("Gagal menyimpan konfigurasi Pakasir");
+      showToast("Konfigurasi Payment Gateway Pakasir tersimpan!");
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleTestPakasir = async () => {
+    if (!pakasirSettings.slug || !pakasirSettings.api_key) {
+      alert("Isi Slug dan API Key terlebih dahulu.");
+      return;
+    }
+    setPakasirTesting(true);
+    try {
+      // Simpan dulu agar test memakai konfigurasi terbaru
+      await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "pakasir_config", value: pakasirSettings }),
+      });
+
+      // Panggil endpoint test di server (menggunakan kredensial yang tersimpan)
+      const res = await fetch("/api/admin/pakasir/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (data.ok) {
+        showToast(data.message || "Koneksi ke Pakasir berhasil (kredensial valid).");
+      } else {
+        alert(data.message || "Koneksi ke Pakasir gagal. Periksa konfigurasi.");
+      }
+    } catch (err: any) {
+      alert("Gagal menghubungi server: " + (err?.message || "cek koneksi"));
+    } finally {
+      setPakasirTesting(false);
+    }
+  };
+
+  // ============== BULK SYNC & FORCE COMPLETE ==============
+  const handleBulkSyncPending = async () => {
+    if (
+      !confirm(
+        "Sinkronkan semua transaksi pending ke Pakasir?\n\nCatatan: Pakasir membatasi 1 request per 4 detik, proses ini bisa memakan waktu cukup lama."
+      )
+    )
+      return;
+
+    setBulkSyncing(true);
+    try {
+      const res = await fetch("/api/admin/transactions/check-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "bulk_sync" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Sinkronisasi gagal");
+
+      showToast(data.message || "Sinkronisasi selesai.");
+
+      // Refresh data
+      const resTx = await fetch("/api/admin/transactions");
+      const dataTx = await resTx.json();
+      if (dataTx.transactions) setTransactions(dataTx.transactions);
+
+      const resUsers = await fetch("/api/admin/users");
+      const dataUsers = await resUsers.json();
+      if (dataUsers.users) setUsers(dataUsers.users);
+    } catch (err: any) {
+      alert(err.message || "Sinkronisasi gagal.");
+    } finally {
+      setBulkSyncing(false);
+    }
+  };
+
+  const handleForceComplete = async (orderId: string) => {
+    if (
+      !confirm(
+        `Paksa transaksi ${orderId} menjadi LUNAS?\n\nPengguna akan langsung di-upgrade ke paket yang dibeli. Gunakan hanya jika Anda sudah memastikan pembayaran diterima (mis. via transfer manual).`
+      )
+    )
+      return;
+
+    setForcingId(orderId);
+    try {
+      const res = await fetch("/api/admin/transactions/check-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "force_complete", orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memaksa status");
+
+      showToast(data.message || "Transaksi ditandai lunas.");
+
+      const resTx = await fetch("/api/admin/transactions");
+      const dataTx = await resTx.json();
+      if (dataTx.transactions) setTransactions(dataTx.transactions);
+
+      const resUsers = await fetch("/api/admin/users");
+      const dataUsers = await resUsers.json();
+      if (dataUsers.users) setUsers(dataUsers.users);
+    } catch (err: any) {
+      alert(err.message || "Gagal memaksa status.");
+    } finally {
+      setForcingId(null);
+    }
   };
 
   // User Actions
@@ -1158,12 +1292,21 @@ export default function AdminPage() {
                     <h1 className="text-xl font-bold text-white tracking-tight">Riwayat Transaksi Pembayaran</h1>
                     <p className="text-xs text-muted">Pantau status pembayaran QRIS Pakasir, detail pembeli, dan konfirmasi pembayaran manual.</p>
                   </div>
-                  <button
-                    onClick={exportTransactionsCSV}
-                    className="px-3.5 py-2 bg-bg-surface hover:text-white border border-border text-muted text-xs font-medium rounded-lg"
-                  >
-                    Ekspor Transaksi (.CSV)
-                  </button>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={handleBulkSyncPending}
+                      disabled={bulkSyncing}
+                      className="px-3.5 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-lg"
+                    >
+                      {bulkSyncing ? "Menyinkronkan..." : "Sinkronkan Semua Pending"}
+                    </button>
+                    <button
+                      onClick={exportTransactionsCSV}
+                      className="px-3.5 py-2 bg-bg-surface hover:text-white border border-border text-muted text-xs font-medium rounded-lg"
+                    >
+                      Ekspor Transaksi (.CSV)
+                    </button>
+                  </div>
                 </div>
 
                 {/* Search & Filter */}
@@ -1248,13 +1391,22 @@ export default function AdminPage() {
                             </td>
                             <td className="p-3 text-right">
                               {t.status === "pending" ? (
-                                <button
-                                  onClick={() => handleAdminCheckTxStatus(t.order_id, t.txn_id)}
-                                  disabled={checkingTxnId === t.order_id}
-                                  className="px-2.5 py-1 border border-primary/50 text-indigo-300 hover:bg-indigo-950/40 disabled:opacity-50 rounded text-[11px] font-medium transition-colors"
-                                >
-                                  {checkingTxnId === t.order_id ? "Memeriksa..." : "Cek Status"}
-                                </button>
+                                <div className="flex justify-end gap-1.5">
+                                  <button
+                                    onClick={() => handleAdminCheckTxStatus(t.order_id, t.txn_id)}
+                                    disabled={checkingTxnId === t.order_id || forcingId === t.order_id}
+                                    className="px-2.5 py-1 border border-primary/50 text-indigo-300 hover:bg-indigo-950/40 disabled:opacity-50 rounded text-[11px] font-medium transition-colors"
+                                  >
+                                    {checkingTxnId === t.order_id ? "Memeriksa..." : "Cek Status"}
+                                  </button>
+                                  <button
+                                    onClick={() => handleForceComplete(t.order_id)}
+                                    disabled={forcingId === t.order_id || checkingTxnId === t.order_id}
+                                    className="px-2.5 py-1 border border-red-500/40 text-red-300 hover:bg-red-500/10 disabled:opacity-50 rounded text-[11px] font-medium transition-colors"
+                                  >
+                                    {forcingId === t.order_id ? "Memproses..." : "Paksa Selesai"}
+                                  </button>
+                                </div>
                               ) : (
                                 <span className="text-[10px] text-dim">-</span>
                               )}
@@ -1412,6 +1564,101 @@ export default function AdminPage() {
                       </button>
                     </form>
                   </div>
+                </div>
+
+                {/* 2B. PAKASIR PAYMENT GATEWAY CONFIG */}
+                <div className="bg-bg-surface border border-border rounded-xl p-5">
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <h2 className="text-sm font-semibold text-white mb-1">Konfigurasi Payment Gateway Pakasir</h2>
+                      <p className="text-xs text-muted mb-4">
+                        Kredensial QRIS disimpan aman di database server. Pastikan Webhook URL di dashboard Pakasir mengarah ke{" "}
+                        <span className="font-mono text-indigo-300">{window.location.origin}/api/payment/webhook</span>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSavePakasirSettings} className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-muted mb-1">Slug / Nama Project Pakasir</label>
+                        <input
+                          type="text"
+                          value={pakasirSettings.slug}
+                          onChange={(e) => setPakasirSettings({ ...pakasirSettings, slug: e.target.value })}
+                          placeholder="prdgen"
+                          className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted mb-1">Base URL Pakasir</label>
+                        <input
+                          type="text"
+                          value={pakasirSettings.base_url}
+                          onChange={(e) => setPakasirSettings({ ...pakasirSettings, base_url: e.target.value })}
+                          placeholder="https://app.pakasir.com"
+                          className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-muted mb-1">API Key Pakasir</label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type={showPakasirKey ? "text" : "password"}
+                          value={pakasirSettings.api_key}
+                          onChange={(e) => setPakasirSettings({ ...pakasirSettings, api_key: e.target.value })}
+                          placeholder="Masukkan API Key Pakasir..."
+                          className="flex-1 px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPakasirKey(!showPakasirKey)}
+                          className="px-3 py-2 bg-bg-input border border-border rounded-lg text-xs text-muted hover:text-white"
+                        >
+                          {showPakasirKey ? "Tutup" : "Lihat"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-muted mb-1">Webhook Secret</label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type={showPakasirWebhook ? "text" : "password"}
+                          value={pakasirSettings.webhook_secret}
+                          onChange={(e) => setPakasirSettings({ ...pakasirSettings, webhook_secret: e.target.value })}
+                          placeholder="Secret untuk verifikasi webhook Pakasir..."
+                          className="flex-1 px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPakasirWebhook(!showPakasirWebhook)}
+                          className="px-3 py-2 bg-bg-input border border-border rounded-lg text-xs text-muted hover:text-white"
+                        >
+                          {showPakasirWebhook ? "Tutup" : "Lihat"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="submit"
+                        className="flex-1 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-colors"
+                      >
+                        Simpan Konfigurasi Pakasir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleTestPakasir}
+                        disabled={pakasirTesting}
+                        className="px-4 py-2.5 bg-bg-input hover:text-white border border-border text-muted text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {pakasirTesting ? "Menguji..." : "Tes Koneksi"}
+                      </button>
+                    </div>
+                  </form>
                 </div>
 
                 {/* 3. AI MODELS LIST */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Footer } from "@/components/footer";
@@ -82,6 +82,13 @@ export default function PricingPage() {
     setQrisModalOpen(true);
   };
 
+  // Stabilkan callback agar interval polling di modal tidak terus di-reset
+  const handlePaymentSuccess = useCallback(() => {
+    setProfile((prev: any) =>
+      prev ? { ...prev, plan: selectedPlanForCheckout } : prev
+    );
+  }, [selectedPlanForCheckout]);
+
   return (
     <div className="flex-1 flex flex-col animate-page-enter">
       
@@ -93,9 +100,7 @@ export default function PricingPage() {
         billingCycle={isYearly ? "yearly" : "monthly"}
         basePrice={getPlanPrice(selectedPlanForCheckout)}
         userEmail={user?.email || ""}
-        onPaymentSuccess={() => {
-          if (profile) setProfile({ ...profile, plan: selectedPlanForCheckout });
-        }}
+        onPaymentSuccess={handlePaymentSuccess}
       />
 
       {/* HEADER */}

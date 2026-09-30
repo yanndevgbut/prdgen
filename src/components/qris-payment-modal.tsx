@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import QRCode from "qrcode";
 import { formatRupiah } from "@/lib/utils";
@@ -20,6 +20,7 @@ export interface QRISTransactionData {
   totalPayment: number;
   qrString: string;
   expiredAt: string;
+  isSandbox?: boolean;
 }
 
 interface QRISPaymentModalProps {
@@ -70,6 +71,14 @@ export function QRISPaymentModal({
   const [isExpired, setIsExpired] = useState(false);
   const [manualChecking, setManualChecking] = useState(false);
   const [manualStatusMsg, setManualStatusMsg] = useState<string | null>(null);
+  const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
+  const [upstreamError, setUpstreamError] = useState<string | null>(null);
+
+  // Jaga callback tetap stabil agar interval polling tidak terus di-reset
+  const onPaymentSuccessRef = useRef(onPaymentSuccess);
+  useEffect(() => {
+    onPaymentSuccessRef.current = onPaymentSuccess;
+  }, [onPaymentSuccess]);
 
   useEffect(() => {
     setMounted(true);
@@ -89,6 +98,8 @@ export function QRISPaymentModal({
       setIsSuccess(false);
       setIsExpired(false);
       setManualStatusMsg(null);
+      setLastCheckedAt(null);
+      setUpstreamError(null);
     }
   }, [isOpen, userEmail, selectedPlan, billingCycle]);
 
@@ -241,25 +252,58 @@ export function QRISPaymentModal({
   useEffect(() => {
     if (!isOpen || stage !== "qris" || !qrisData?.orderId || isSuccess || isExpired) return;
 
-    const pollInterval = setInterval(async () => {
+    const controller = new AbortController();
+
+    const checkOnce = async () => {
       try {
-        const res = await fetch(`/api/payment/check-status?orderId=${encodeURIComponent(qrisData.orderId)}`);
+        const res = await fetch(
+          `/api/payment/check-status?orderId=${encodeURIComponent(qrisData.orderId)}`,
+          { signal: controller.signal }
+        );
         const statusData = await res.json();
+
+        if (statusData?.checkedAt) setLastCheckedAt(statusData.checkedAt);
+
+        if (statusData?.upstreamError) {
+          setUpstreamError(
+            statusData.upstreamMessage || "Gagal menghubungi server pembayaran."
+          );
+        } else {
+          setUpstreamError(null);
+        }
 
         if (statusData?.status === "completed") {
           setIsSuccess(true);
-          clearInterval(pollInterval);
-          if (onPaymentSuccess) {
-            onPaymentSuccess();
-          }
+          if (onPaymentSuccessRef.current) onPaymentSuccessRef.current();
+          return true;
         }
-      } catch (err) {
-        // Silent polling error
+
+        if (statusData?.status === "canceled") {
+          setIsExpired(true);
+          return true;
+        }
+
+        return false;
+      } catch (err: any) {
+        if (err?.name !== "AbortError") {
+          setUpstreamError("Koneksi ke server pembayaran terputus. Sistem akan mencoba lagi otomatis.");
+        }
+        return false;
       }
+    };
+
+    const pollInterval = setInterval(async () => {
+      const done = await checkOnce();
+      if (done) clearInterval(pollInterval);
     }, 5000);
 
-    return () => clearInterval(pollInterval);
-  }, [isOpen, stage, qrisData, isSuccess, isExpired, onPaymentSuccess]);
+    return () => {
+      clearInterval(pollInterval);
+      controller.abort();
+    };
+    // onPaymentSuccess sengaja tidak jadi dependency (pakai ref agar interval stabil)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, stage, qrisData, isSuccess, isExpired]);
 
   // Manual Check Status Button
   const handleManualCheckStatus = async () => {
@@ -268,18 +312,40 @@ export function QRISPaymentModal({
     setManualStatusMsg(null);
 
     try {
-      const res = await fetch(`/api/payment/check-status?orderId=${encodeURIComponent(qrisData.orderId)}`);
+      const res = await fetch(
+        `/api/payment/check-status?orderId=${encodeURIComponent(qrisData.orderId)}`
+      );
       const statusData = await res.json();
 
+      if (statusData?.checkedAt) setLastCheckedAt(statusData.checkedAt);
+
       if (statusData?.status === "completed") {
+        setUpstreamError(null);
         setIsSuccess(true);
-        if (onPaymentSuccess) onPaymentSuccess();
-      } else {
-        setManualStatusMsg("Status pembayaran masih menunggu. Silakan selesaikan pembayaran di aplikasi m-Banking/e-Wallet Anda.");
-        setTimeout(() => setManualStatusMsg(null), 4000);
+        if (onPaymentSuccessRef.current) onPaymentSuccessRef.current();
+        return;
       }
+
+      if (statusData?.status === "canceled") {
+        setIsExpired(true);
+        return;
+      }
+
+      if (statusData?.upstreamError) {
+        setUpstreamError(
+          statusData.upstreamMessage || "Gagal menghubungi server pembayaran."
+        );
+        setManualStatusMsg("Pemeriksaan gagal. Lihat pesan di bawah.");
+        return;
+      }
+
+      setManualStatusMsg(
+        statusData?.upstreamMessage ||
+          "Status masih menunggu. Pastikan QR sudah dipindai dan pembayaran berstatus Sukses."
+      );
     } catch (err) {
-      setManualStatusMsg("Gagal memeriksa status. Silakan coba lagi.");
+      setManualStatusMsg("Gagal memeriksa status. Periksa koneksi internet Anda.");
+      setUpstreamError("Tidak dapat menghubungi server pembayaran.");
     } finally {
       setManualChecking(false);
     }
@@ -306,6 +372,11 @@ export function QRISPaymentModal({
             <p className="text-xs text-muted mt-0.5">
               Paket <span className="text-indigo-300 font-semibold uppercase">{selectedPlan}</span> &bull; {billingCycle === "yearly" ? "Tahunan (Diskon 20%)" : "Bulanan"}
             </p>
+            {stage === "qris" && qrisData?.isSandbox && (
+              <div className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded">
+                MODE SANDBOX &mdash; pembayaran hanya disimulasikan, dana bukan riil
+              </div>
+            )}
           </div>
 
           <button
@@ -546,6 +617,45 @@ export function QRISPaymentModal({
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                   <span>Menunggu pembayaran Anda...</span>
                 </div>
+
+                {/* Identitas Transaksi + Last Check */}
+                <div className="p-2.5 bg-bg-input border border-border rounded-lg text-[10px] space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-dim shrink-0">Order ID</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(qrisData.orderId);
+                        setManualStatusMsg("Order ID disalin.");
+                      }}
+                      className="font-mono text-indigo-300 hover:text-indigo-200 truncate"
+                      title="Klik untuk menyalin"
+                    >
+                      {qrisData.orderId}
+                    </button>
+                  </div>
+                  {qrisData.txnId && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-dim shrink-0">TXN ID</span>
+                      <span className="font-mono text-indigo-300 truncate">{qrisData.txnId}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-dim shrink-0">Terakhir dicek</span>
+                    <span className="text-muted font-mono">
+                      {lastCheckedAt
+                        ? new Date(lastCheckedAt).toLocaleTimeString("id-ID")
+                        : "Belum dicek"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Banner error upstream (bukan diam-diam) */}
+                {upstreamError && (
+                  <div className="p-2.5 bg-amber-950/30 border border-amber-500/30 text-amber-300 text-[11px] rounded-lg leading-relaxed">
+                    {upstreamError}
+                  </div>
+                )}
 
                 {manualStatusMsg && (
                   <div className="p-2.5 bg-indigo-950/30 border border-indigo-500/30 text-indigo-300 text-xs rounded-lg text-center">
