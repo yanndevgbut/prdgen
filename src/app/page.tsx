@@ -1,9 +1,59 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Footer } from "@/components/footer";
+
+export const metadata: Metadata = {
+  title: "PrdGen — Buat PRD Tanpa Ribet dengan AI",
+  description:
+    "Create PRD / buat dokumen Product Requirements Document (PRD) otomatis dan terstruktur dengan AI. Web bikin PRD tanpa ribet, siap dibagikan ke tim developer.",
+  keywords: [
+    "create PRD",
+    "buat PRD tanpa ribet",
+    "web bikin PRD",
+    "PRD generator",
+    "product requirements document",
+    "dokumen PRD AI",
+  ],
+};
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "Apa itu PrdGen?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "PrdGen adalah web bikin PRD berbasis AI yang membantu Anda membuat Product Requirements Document (PRD) otomatis dan terstruktur tanpa ribet.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Bagaimana cara buat PRD di PrdGen?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Tulis ide produk, jawab beberapa detail teknis, lalu AI menyusun dokumen PRD lengkap yang siap dibagikan ke tim developer.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Apakah PrdGen bisa dipakai gratis?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Bisa. Setiap akun baru mendapat kuota gratis untuk mencoba fitur generator PRD AI sebelum memilih paket berbayar.",
+      },
+    },
+  ],
+};
 
 export default function HomePage() {
   return (
     <div className="flex-1 flex flex-col animate-page-enter">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       {/* HERO SECTION */}
       <section className="py-20 md:py-28 px-4 md:px-8 flex justify-center">
         <div className="max-w-[1100px] w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -11,10 +61,10 @@ export default function HomePage() {
           {/* Left Text */}
           <div className="lg:col-span-7 flex flex-col">
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight mb-4 text-white">
-              Bikin PRD lengkap tanpa repot berjam-jam
+              Buat PRD Tanpa Ribet dengan AI
             </h1>
             <p className="text-base md:text-lg text-muted leading-relaxed mb-8 max-w-xl">
-              Tulis ide dasarmu, jawab beberapa detail teknis, dan langsung dapat dokumen PRD terstruktur rapi yang siap dibagiin ke tim developer.
+              Create PRD otomatis: tulis ide dasarmu, jawab beberapa detail teknis, dan langsung dapat dokumen Product Requirements Document (PRD) terstruktur rapi yang siap dibagiin ke tim developer. Web bikin PRD jadi cepat dan gampang.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
@@ -124,10 +174,10 @@ export default function HomePage() {
       <section className="py-20 px-4 md:px-8 border-t border-border text-center">
         <div className="max-w-xl mx-auto flex flex-col items-center">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 text-white">
-            Mau coba bikin PRD sekarang?
+            Mau coba buat PRD tanpa ribet sekarang?
           </h2>
           <p className="text-sm md:text-base text-muted mb-8">
-            Cepat, rapi, dan langsung bisa dieksekusi oleh tim engineering.
+            Create PRD otomatis, cepat, rapi, dan langsung bisa dieksekusi oleh tim engineering.
           </p>
           <Link
             href="/app"
