@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
 import { sendPasswordResetEmail } from "@/lib/email/resend";
@@ -42,22 +43,16 @@ export async function POST(req: NextRequest) {
       .eq("email", cleanEmail)
       .maybeSingle();
 
-    if (!profile) {
-      return NextResponse.json(
-        { error: "Alamat email ini tidak terdaftar di sistem kami." },
-        { status: 404 }
-      );
+    // Anti user enumeration: balas generik untuk email tidak terdaftar / banned
+    if (!profile || profile.status === "banned") {
+      return NextResponse.json({
+        success: true,
+        message: "Jika email terdaftar, kode reset kata sandi akan dikirimkan.",
+      });
     }
 
-    if (profile.status === "banned") {
-      return NextResponse.json(
-        { error: "Akun ini telah dinonaktifkan oleh administrator." },
-        { status: 403 }
-      );
-    }
-
-    // 3. Generate 6-digit numeric OTP code
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // 3. Generate 6-digit numeric OTP code (cryptographically secure)
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 menit
 
     // 4. Bersihkan OTP lama untuk email ini lalu simpan yang baru

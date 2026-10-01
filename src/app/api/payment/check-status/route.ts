@@ -41,10 +41,10 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = createClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
       .from("transactions")
       .select("*")
       .eq("order_id", orderId)
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .single();
 
     if (dbError || !transaction) {

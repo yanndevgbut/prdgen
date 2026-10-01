@@ -21,10 +21,10 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = createClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized. Silakan masuk terlebih dahulu untuk membeli paket." },
         { status: 401 }
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = getClientIp(req);
-    const rateLimit = checkRateLimit(session.user.id || ip, "create_qris", 6, 60);
+    const rateLimit = checkRateLimit(user.id || ip, "create_qris", 6, 60);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: `Terlalu banyak permintaan transaksi. Silakan tunggu ${rateLimit.resetSeconds} detik.` },
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     const { data: profile } = await adminSupabase
       .from("profiles")
       .select("status, plan, prd_count")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single();
 
     if (profile?.status === "banned") {
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
       .from("transactions")
       .insert({
         order_id: orderId,
-        user_id: session.user.id,
+        user_id: user.id,
         customer_email: cleanEmail,
         customer_phone: cleanPhone,
         plan: plan,
@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
 
     // 7. Catat log aktivitas
     await adminSupabase.from("activity_logs").insert({
-      user_id: session.user.id,
+      user_id: user.id,
       action: "CREATE_QRIS_TRANSACTION",
       details: {
         order_id: orderId,

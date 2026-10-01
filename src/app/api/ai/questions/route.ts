@@ -6,18 +6,18 @@ import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
 import { z } from "zod";
 
 const questionRequestSchema = z.object({
-  title: z.string().min(1, "Nama produk wajib diisi"),
-  description: z.string().min(5, "Deskripsi produk minimal 5 karakter"),
+  title: z.string().min(1, "Nama produk wajib diisi").max(200, "Nama produk maksimal 200 karakter"),
+  description: z.string().min(5, "Deskripsi produk minimal 5 karakter").max(4000, "Deskripsi produk maksimal 4000 karakter"),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const supabase = createClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized. Silakan login terlebih dahulu." },
         { status: 401 }
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     // Rate Limiting: Maks 10 request per menit per user/IP
     const ip = getClientIp(req);
-    const identifier = session.user.id || ip;
+    const identifier = user.id || ip;
     const rateLimit = checkRateLimit(identifier, "ai_questions", 10, 60);
 
     if (!rateLimit.allowed) {
@@ -50,12 +50,12 @@ export async function POST(req: NextRequest) {
 
     const { title, description } = validation.data;
 
-    // Cek apakah user berstatus banned
+    // Cek apakah user berstatus banned + kuota trial (konsisten dengan generate)
     const adminSupabase = createAdminClient();
     const { data: profile } = await adminSupabase
       .from("profiles")
-      .select("status")
-      .eq("id", session.user.id)
+      .select("status, plan, prd_count")
+      .eq("id", user.id)
       .single();
 
     if (profile?.status === "banned") {
@@ -63,6 +63,22 @@ export async function POST(req: NextRequest) {
         { error: "Akun Anda telah dinonaktifkan oleh administrator." },
         { status: 403 }
       );
+    }
+
+    if (profile?.plan === "trial") {
+      const { data: settingData } = await adminSupabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", "general_settings")
+        .single();
+
+      const freeQuota = (settingData?.value as any)?.free_quota || 3;
+      if ((profile.prd_count || 0) >= freeQuota) {
+        return NextResponse.json(
+          { error: `Batas kuota trial (${freeQuota} PRD) telah tercapai. Silakan upgrade ke paket VIP.` },
+          { status: 403 }
+        );
+      }
     }
 
     // Generate tailored questions via 9router AI

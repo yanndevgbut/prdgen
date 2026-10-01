@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
+import { decryptSecret } from "@/lib/security/crypto";
 import { z } from "zod";
 
 const verifyOtpSchema = z.object({
@@ -84,11 +85,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 6. OTP Valid: Buat akun resmi di Supabase Auth Admin
+    // 6. OTP Valid: Dekripsi password lalu buat akun resmi di Supabase Auth Admin
     let createdUser = null;
+    let decryptedPassword: string;
+    try {
+      decryptedPassword = decryptSecret(record.password_hash);
+    } catch (decryptErr: any) {
+      console.error("Gagal mendekripsi password OTP:", decryptErr?.message);
+      return NextResponse.json(
+        { error: "Gagal memproses pendaftaran. Silakan minta kode baru." },
+        { status: 500 }
+      );
+    }
+
     const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
       email: cleanEmail,
-      password: record.password_hash,
+      password: decryptedPassword,
       email_confirm: true, // Akun langsung terverifikasi
       user_metadata: {
         full_name: record.full_name,
@@ -111,7 +123,7 @@ export async function POST(req: NextRequest) {
         if (existingUser) {
           const { data: updatedAuth, error: updateAuthErr } =
             await adminSupabase.auth.admin.updateUserById(existingUser.id, {
-              password: record.password_hash,
+              password: decryptedPassword,
               email_confirm: true,
               user_metadata: {
                 full_name: record.full_name,
@@ -163,7 +175,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Verifikasi OTP berhasil. Akun Anda telah aktif!",
-      password: record.password_hash,
       email: cleanEmail,
     });
   } catch (err: any) {

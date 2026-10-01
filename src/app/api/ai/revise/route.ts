@@ -7,8 +7,8 @@ import { z } from "zod";
 
 const reviseSchema = z.object({
   prdId: z.string().uuid("ID PRD tidak valid"),
-  instruction: z.string().min(3, "Instruksi revisi minimal 3 karakter"),
-  modelOverride: z.string().optional(),
+  instruction: z.string().min(3, "Instruksi revisi minimal 3 karakter").max(4000, "Instruksi revisi maksimal 4000 karakter"),
+  modelOverride: z.string().min(1).max(100).optional(),
 });
 
 const TIER_LEVELS: Record<string, number> = {
@@ -22,10 +22,10 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = createClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized. Silakan login terlebih dahulu." },
         { status: 401 }
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Rate Limiting: Maksimal 5 revisi per menit
     const ip = getClientIp(req);
-    const identifier = session.user.id || ip;
+    const identifier = user.id || ip;
     const rateLimit = checkRateLimit(identifier, "ai_revise", 5, 60);
 
     if (!rateLimit.allowed) {
@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
     // 2. Cek profil user & ban status
     const { data: profile } = await adminSupabase
       .from("profiles")
-      .select("status, plan")
-      .eq("id", session.user.id)
+      .select("status, plan, prd_count")
+      .eq("id", user.id)
       .single();
 
     if (profile?.status === "banned") {
@@ -71,6 +71,23 @@ export async function POST(req: NextRequest) {
         { error: "Akun Anda telah dinonaktifkan oleh administrator." },
         { status: 403 }
       );
+    }
+
+    // 2b. Cek kuota trial (konsisten dengan generate)
+    if (profile?.plan === "trial") {
+      const { data: settingData } = await adminSupabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", "general_settings")
+        .single();
+
+      const freeQuota = (settingData?.value as any)?.free_quota || 3;
+      if ((profile.prd_count || 0) >= freeQuota) {
+        return NextResponse.json(
+          { error: `Batas kuota trial (${freeQuota} PRD) telah tercapai. Silakan upgrade ke paket VIP.` },
+          { status: 403 }
+        );
+      }
     }
 
     // 3. Validasi Model Tier Lock
@@ -82,18 +99,24 @@ export async function POST(req: NextRequest) {
         .eq("is_active", true)
         .single();
 
-      if (modelData) {
-        const userPlanLevel = TIER_LEVELS[profile?.plan?.toLowerCase() || "trial"] || 1;
-        const requiredLevel = TIER_LEVELS[modelData.min_tier?.toLowerCase() || "basic"] || 1;
+      // Wajib terdaftar & aktif; tolak bila tidak dikenal (cegah bypass tier)
+      if (!modelData) {
+        return NextResponse.json(
+          { error: "Model AI yang diminta tidak ditemukan atau tidak aktif." },
+          { status: 403 }
+        );
+      }
 
-        if (userPlanLevel < requiredLevel) {
-          return NextResponse.json(
-            {
-              error: `Model AI "${modelData.name}" membutuhkan paket ${modelData.min_tier.toUpperCase()} ke atas. Silakan upgrade paket Anda untuk menggunakan model ini.`,
-            },
-            { status: 403 }
-          );
-        }
+      const userPlanLevel = TIER_LEVELS[profile?.plan?.toLowerCase() || "trial"] || 1;
+      const requiredLevel = TIER_LEVELS[modelData.min_tier?.toLowerCase() || "basic"] || 1;
+
+      if (userPlanLevel < requiredLevel) {
+        return NextResponse.json(
+          {
+            error: `Model AI "${modelData.name}" membutuhkan paket ${modelData.min_tier.toUpperCase()} ke atas. Silakan upgrade paket Anda untuk menggunakan model ini.`,
+          },
+          { status: 403 }
+        );
       }
     }
 
@@ -102,7 +125,7 @@ export async function POST(req: NextRequest) {
       .from("prds")
       .select("*")
       .eq("id", prdId)
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .single();
 
     if (fetchError || !currentPrd) {
@@ -147,7 +170,7 @@ export async function POST(req: NextRequest) {
 
     // 8. Catat log
     await adminSupabase.from("activity_logs").insert({
-      user_id: session.user.id,
+      user_id: user.id,
       action: "REVISE_PRD",
       details: {
         prd_id: prdId,

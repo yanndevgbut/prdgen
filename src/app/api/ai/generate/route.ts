@@ -6,16 +6,16 @@ import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
 import { z } from "zod";
 
 const generateSchema = z.object({
-  title: z.string().min(1, "Nama produk wajib diisi"),
-  description: z.string().min(5, "Deskripsi produk minimal 5 karakter"),
+  title: z.string().min(1, "Nama produk wajib diisi").max(200, "Nama produk maksimal 200 karakter"),
+  description: z.string().min(5, "Deskripsi produk minimal 5 karakter").max(4000, "Deskripsi produk maksimal 4000 karakter"),
   mode: z.enum(["ai", "manual"]).default("ai"),
-  modelOverride: z.string().optional(),
+  modelOverride: z.string().min(1).max(100).optional(),
   answers: z.record(z.any()).optional(),
   questions: z.array(z.any()).optional(),
-  targetAudience: z.string().optional(),
-  techStack: z.string().optional(),
-  hosting: z.string().optional(),
-  thirdParty: z.string().optional(),
+  targetAudience: z.string().max(1000).optional(),
+  techStack: z.string().max(1000).optional(),
+  hosting: z.string().max(1000).optional(),
+  thirdParty: z.string().max(1000).optional(),
 });
 
 const TIER_LEVELS: Record<string, number> = {
@@ -29,10 +29,10 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = createClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized. Silakan login terlebih dahulu." },
         { status: 401 }
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Rate Limiting: Maksimal 5 generate request per menit per user/IP
     const ip = getClientIp(req);
-    const identifier = session.user.id || ip;
+    const identifier = user.id || ip;
     const rateLimit = checkRateLimit(identifier, "ai_generate", 5, 60);
 
     if (!rateLimit.allowed) {
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     const { data: profile } = await adminSupabase
       .from("profiles")
       .select("status, plan, prd_count")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single();
 
     if (profile?.status === "banned") {
@@ -100,18 +100,24 @@ export async function POST(req: NextRequest) {
         .eq("is_active", true)
         .single();
 
-      if (modelData) {
-        const userPlanLevel = TIER_LEVELS[profile?.plan?.toLowerCase() || "trial"] || 1;
-        const requiredLevel = TIER_LEVELS[modelData.min_tier?.toLowerCase() || "basic"] || 1;
+      // Wajib terdaftar & aktif; tolak bila tidak dikenal (cegah bypass tier)
+      if (!modelData) {
+        return NextResponse.json(
+          { error: "Model AI yang diminta tidak ditemukan atau tidak aktif." },
+          { status: 403 }
+        );
+      }
 
-        if (userPlanLevel < requiredLevel) {
-          return NextResponse.json(
-            {
-              error: `Model AI "${modelData.name}" membutuhkan paket ${modelData.min_tier.toUpperCase()} ke atas. Silakan upgrade paket Anda untuk menggunakan model ini.`,
-            },
-            { status: 403 }
-          );
-        }
+      const userPlanLevel = TIER_LEVELS[profile?.plan?.toLowerCase() || "trial"] || 1;
+      const requiredLevel = TIER_LEVELS[modelData.min_tier?.toLowerCase() || "basic"] || 1;
+
+      if (userPlanLevel < requiredLevel) {
+        return NextResponse.json(
+          {
+            error: `Model AI "${modelData.name}" membutuhkan paket ${modelData.min_tier.toUpperCase()} ke atas. Silakan upgrade paket Anda untuk menggunakan model ini.`,
+          },
+          { status: 403 }
+        );
       }
     }
 
@@ -149,7 +155,7 @@ export async function POST(req: NextRequest) {
     const { data: newPrd, error: dbError } = await supabase
       .from("prds")
       .insert({
-        user_id: session.user.id,
+        user_id: user.id,
         title,
         description,
         mode,
@@ -174,7 +180,7 @@ export async function POST(req: NextRequest) {
 
     // 7. Catat activity log
     await adminSupabase.from("activity_logs").insert({
-      user_id: session.user.id,
+      user_id: user.id,
       action: "GENERATE_PRD",
       details: {
         prd_id: newPrd.id,

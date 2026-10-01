@@ -6,10 +6,10 @@ export async function GET() {
   try {
     const supabase = createClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -17,7 +17,7 @@ export async function GET() {
     const { data: profile } = await adminClient
       .from("profiles")
       .select("role")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single();
 
     if (profile?.role !== "admin") {
@@ -36,10 +36,10 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = createClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const { data: profile } = await adminClient
       .from("profiles")
       .select("role")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single();
 
     if (profile?.role !== "admin") {
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 
     // Log admin activity
     await adminClient.from("activity_logs").insert({
-      user_id: session.user.id,
+      user_id: user.id,
       action: `UPDATE_SETTING_${key.toUpperCase()}`,
       details: { key },
     });

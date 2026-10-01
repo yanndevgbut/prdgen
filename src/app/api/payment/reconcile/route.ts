@@ -14,10 +14,10 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = createClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const { data: pendingList, error: fetchErr } = await adminSupabase
       .from("transactions")
       .select("*")
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .eq("status", "pending")
       .order("created_at", { ascending: true });
 

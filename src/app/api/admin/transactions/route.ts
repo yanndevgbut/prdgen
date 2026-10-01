@@ -5,21 +5,21 @@ import { createAdminClient } from "@/lib/supabase/admin";
 async function verifyAdmin() {
   const supabase = createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session?.user) return { error: "Unauthorized", status: 401 };
+  if (!user) return { error: "Unauthorized", status: 401 };
 
   const adminClient = createAdminClient();
   const { data: profile } = await adminClient
     .from("profiles")
     .select("role")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single();
 
   if (profile?.role !== "admin") return { error: "Forbidden", status: 403 };
 
-  return { adminClient, userId: session.user.id };
+  return { adminClient, userId: user.id };
 }
 
 export async function GET(req: NextRequest) {

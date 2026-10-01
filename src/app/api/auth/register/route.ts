@@ -4,10 +4,9 @@ import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
 import { z } from "zod";
 
 const registerSchema = z.object({
-  fullName: z.string().min(2, "Nama lengkap minimal 2 karakter"),
+  fullName: z.string().min(2, "Nama lengkap minimal 2 karakter").max(100, "Nama maksimal 100 karakter"),
   email: z.string().email("Format email tidak valid"),
-  password: z.string().min(6, "Kata sandi minimal 6 karakter"),
-  plan: z.enum(["trial", "basic", "vip", "enterprise"]).default("trial"),
+  password: z.string().min(6, "Kata sandi minimal 6 karakter").max(128, "Kata sandi maksimal 128 karakter"),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,7 +34,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { fullName, email, password, plan } = validation.data;
+    const { fullName, email, password } = validation.data;
+    // Paksa plan selalu "trial" (upgrade hanya via pembayaran)
+    const plan = "trial";
     const adminSupabase = createAdminClient();
 
     // 2. Cek apakah pendaftaran dibuka oleh admin di sistem
@@ -64,10 +65,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (authError) {
-      // Jika email sudah terdaftar
+      // Anti user enumeration: balas generik tanpa membocorkan status email
       if (authError.message?.toLowerCase().includes("already registered") || authError.message?.toLowerCase().includes("unique")) {
         return NextResponse.json(
-          { error: "Alamat email ini sudah terdaftar. Silakan masuk." },
+          { error: "Tidak dapat memproses pendaftaran. Silakan coba lagi atau masuk ke akun Anda." },
           { status: 400 }
         );
       }

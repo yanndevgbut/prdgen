@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
+import { encryptSecret } from "@/lib/security/crypto";
 import { sendOTPEmail } from "@/lib/email/resend";
 import { z } from "zod";
 
 const sendOtpSchema = z.object({
-  fullName: z.string().min(2, "Nama lengkap minimal 2 karakter"),
+  fullName: z.string().min(2, "Nama lengkap minimal 2 karakter").max(100, "Nama maksimal 100 karakter"),
   email: z.string().email("Format email tidak valid"),
-  password: z.string().min(6, "Kata sandi minimal 6 karakter"),
-  plan: z.enum(["trial", "basic", "vip", "enterprise"]).default("trial"),
+  password: z.string().min(6, "Kata sandi minimal 6 karakter").max(128, "Kata sandi maksimal 128 karakter"),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,8 +36,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { fullName, email, password, plan } = validation.data;
+    const { fullName, email, password } = validation.data;
     const cleanEmail = email.trim().toLowerCase();
+    // Paksa plan selalu "trial" saat registrasi (upgrade hanya via pembayaran)
+    const plan = "trial";
     const adminSupabase = createAdminClient();
 
     // 2. Cek apakah pendaftaran dibuka oleh admin di sistem
@@ -61,24 +64,28 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (existingProfile) {
-      return NextResponse.json(
-        { error: "Alamat email ini sudah terdaftar. Silakan masuk ke akun Anda." },
-        { status: 400 }
-      );
+      // Anti user enumeration: balas generik agar tidak membocorkan status email
+      return NextResponse.json({
+        success: true,
+        message: "Jika email belum terdaftar, kode verifikasi akan dikirimkan.",
+      });
     }
 
-    // 4. Generate 6-digit numeric OTP code
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // 4. Generate 6-digit numeric OTP code (cryptographically secure)
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 menit
 
     // 5. Bersihkan OTP lama untuk email ini lalu simpan yang baru
     await adminSupabase.from("email_otps").delete().eq("email", cleanEmail);
 
+    // Enkripsi password sebelum disimpan (tidak pernah plaintext di DB)
+    const encryptedPassword = encryptSecret(password);
+
     const { error: insertError } = await adminSupabase.from("email_otps").insert({
       email: cleanEmail,
       otp_code: otpCode,
       full_name: fullName.trim(),
-      password_hash: password, // Disimpan sementara untuk pembuatan auth setelah verifikasi
+      password_hash: encryptedPassword,
       plan: plan,
       attempts: 0,
       expires_at: expiresAt,
