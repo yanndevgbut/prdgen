@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
 import { encryptSecret } from "@/lib/security/crypto";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 import { sendOTPEmail } from "@/lib/email/resend";
 import { z } from "zod";
 
@@ -10,6 +11,8 @@ const sendOtpSchema = z.object({
   fullName: z.string().min(2, "Nama lengkap minimal 2 karakter").max(100, "Nama maksimal 100 karakter"),
   email: z.string().email("Format email tidak valid"),
   password: z.string().min(6, "Kata sandi minimal 6 karakter").max(128, "Kata sandi maksimal 128 karakter"),
+  turnstileToken: z.string().min(1, "Verifikasi keamanan belum dilakukan").optional(),
+  isResend: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -36,11 +39,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { fullName, email, password } = validation.data;
+    const { fullName, email, password, turnstileToken, isResend } = validation.data;
     const cleanEmail = email.trim().toLowerCase();
     // Paksa plan selalu "trial" saat registrasi (upgrade hanya via pembayaran)
     const plan = "trial";
     const adminSupabase = createAdminClient();
+
+    // 1b. Verifikasi Cloudflare Turnstile sebelum mengirim email.
+    //     Pada resend, widget sudah tidak tampil di langkah 2, jadi dilewati
+    //     (rate limit tetap melindungi dari spam).
+    if (!isResend) {
+      const turnstile = await verifyTurnstileToken(turnstileToken || "", ip);
+      if (!turnstile.success) {
+        return NextResponse.json(
+          { error: turnstile.reason || "Verifikasi keamanan gagal. Silakan coba lagi." },
+          { status: 403 }
+        );
+      }
+    }
 
     // 2. Cek apakah pendaftaran dibuka oleh admin di sistem
     const { data: settingData } = await adminSupabase

@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { TurnstileWidget } from "@/components/turnstile-widget";
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,45 +14,48 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Cloudflare Turnstile
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
+
+    if (!turnstileToken) {
+      setErrorMsg("Mohon selesaikan verifikasi keamanan terlebih dahulu.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          turnstileToken,
+        }),
       });
 
-      if (error) {
-        throw error;
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal masuk. Periksa email dan password Anda.");
       }
 
-      if (data?.user) {
-        // Cek apakah akun di-ban
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("status")
-          .eq("id", data.user.id)
-          .single();
-
-        if (profile?.status === "banned") {
-          await supabase.auth.signOut();
-          setErrorMsg("Akun ini telah dinonaktifkan oleh administrator.");
-          setLoading(false);
-          return;
-        }
-
-        setSuccessMsg("Berhasil masuk! Membuka Workspace...");
-        setTimeout(() => {
-          router.push("/app");
-          router.refresh();
-        }, 500);
-      }
+      setSuccessMsg("Berhasil masuk! Membuka Workspace...");
+      setTimeout(() => {
+        router.push("/app");
+        router.refresh();
+      }, 500);
     } catch (err: any) {
       setErrorMsg(err.message || "Gagal masuk. Periksa email dan password Anda.");
+      // Token Turnstile hanya sekali pakai, jadi perlu token baru
+      setTurnstileToken("");
+      setTurnstileResetKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
@@ -118,9 +120,22 @@ export default function LoginPage() {
             />
           </div>
 
+          <TurnstileWidget
+            onVerify={(token) => {
+              setTurnstileToken(token);
+              setErrorMsg(null);
+            }}
+            onExpired={() => setTurnstileToken("")}
+            onError={() =>
+              setErrorMsg("Gagal memuat verifikasi keamanan. Muat ulang halaman.")
+            }
+            action="login"
+            resetKey={turnstileResetKey}
+          />
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !turnstileToken}
             className="w-full py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors mt-2"
           >
             {loading ? "Memproses..." : "Masuk Sekarang"}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { TurnstileWidget } from "@/components/turnstile-widget";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -15,6 +16,10 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Cloudflare Turnstile
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   // OTP State
   const [otpValues, setOtpValues] = useState<string[]>(["", "", "", "", "", ""]);
@@ -49,13 +54,18 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    if (!turnstileToken) {
+      setErrorMsg("Mohon selesaikan verifikasi keamanan terlebih dahulu.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await fetch("/api/auth/forgot-password/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), turnstileToken }),
       });
 
       const data = await res.json();
@@ -74,6 +84,9 @@ export default function ForgotPasswordPage() {
       }, 100);
     } catch (err: any) {
       setErrorMsg(err.message || "Terjadi kesalahan saat meminta kode OTP.");
+      // Token Turnstile sekali pakai, minta token baru
+      setTurnstileToken("");
+      setTurnstileResetKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
@@ -90,7 +103,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch("/api/auth/forgot-password/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), isResend: true }),
       });
 
       const data = await res.json();
@@ -239,9 +252,22 @@ export default function ForgotPasswordPage() {
                 />
               </div>
 
+              <TurnstileWidget
+                onVerify={(token) => {
+                  setTurnstileToken(token);
+                  setErrorMsg(null);
+                }}
+                onExpired={() => setTurnstileToken("")}
+                onError={() =>
+                  setErrorMsg("Gagal memuat verifikasi keamanan. Muat ulang halaman.")
+                }
+                action="forgot_password"
+                resetKey={turnstileResetKey}
+              />
+
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !turnstileToken}
                 className="w-full py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
               >
                 {loading ? "Mengirim Kode..." : "Kirim Kode OTP Reset →"}

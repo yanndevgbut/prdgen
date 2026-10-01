@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 import { sendPasswordResetEmail } from "@/lib/email/resend";
 import { z } from "zod";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Format email tidak valid"),
+  turnstileToken: z.string().min(1, "Verifikasi keamanan belum dilakukan").optional(),
+  isResend: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,6 +38,22 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = validation.data.email.trim().toLowerCase();
     const adminSupabase = createAdminClient();
+
+    // 1b. Verifikasi Cloudflare Turnstile sebelum query database & kirim email.
+    //     Pada resend, widget tidak tampil di langkah 2, jadi dilewati
+    //     (rate limit tetap melindungi dari spam).
+    if (!validation.data.isResend) {
+      const turnstile = await verifyTurnstileToken(
+        validation.data.turnstileToken || "",
+        ip
+      );
+      if (!turnstile.success) {
+        return NextResponse.json(
+          { error: turnstile.reason || "Verifikasi keamanan gagal. Silakan coba lagi." },
+          { status: 403 }
+        );
+      }
+    }
 
     // 2. Cek apakah email terdaftar di profiles / auth
     const { data: profile } = await adminSupabase

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { TurnstileWidget } from "@/components/turnstile-widget";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,7 +17,10 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [plan, setPlan] = useState("trial");
+
+  // Cloudflare Turnstile
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   // OTP State
   const [otpValues, setOtpValues] = useState<string[]>(["", "", "", "", "", ""]);
@@ -51,6 +55,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!turnstileToken) {
+      setErrorMsg("Mohon selesaikan verifikasi keamanan terlebih dahulu.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -62,7 +71,7 @@ export default function RegisterPage() {
           fullName: fullName.trim(),
           email: email.trim(),
           password,
-          plan,
+          turnstileToken,
         }),
       });
 
@@ -83,6 +92,9 @@ export default function RegisterPage() {
       }, 100);
     } catch (err: any) {
       setErrorMsg(err.message || "Gagal memproses pendaftaran.");
+      // Token Turnstile sekali pakai, minta token baru
+      setTurnstileToken("");
+      setTurnstileResetKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
@@ -103,7 +115,7 @@ export default function RegisterPage() {
           fullName: fullName.trim(),
           email: email.trim(),
           password,
-          plan,
+          isResend: true,
         }),
       });
 
@@ -279,26 +291,30 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-white mb-1" htmlFor="plan">
-                  Pilihan Paket Awal
-                </label>
-                <select
-                  id="plan"
-                  value={plan}
-                  onChange={(e) => setPlan(e.target.value)}
-                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none cursor-pointer"
-                >
-                  <option value="trial">Trial Gratis (3 Dokumen PRD)</option>
-                  <option value="basic">Paket Basic (Rp 99.000 / bln)</option>
-                  <option value="vip">Paket VIP (Rp 249.000 / bln - Rekomendasi)</option>
-                  <option value="enterprise">Paket Enterprise (Tim & Agensi)</option>
-                </select>
+              <div className="p-3.5 bg-bg-input border border-border rounded-xl">
+                <div className="text-xs font-semibold text-white">Paket Awal</div>
+                <div className="text-[11px] text-muted mt-1 leading-relaxed">
+                  Trial Gratis — 3 dokumen PRD. Upgrade kapan saja lewat halaman
+                  Harga setelah akun kamu aktif.
+                </div>
               </div>
+
+              <TurnstileWidget
+                onVerify={(token) => {
+                  setTurnstileToken(token);
+                  setErrorMsg(null);
+                }}
+                onExpired={() => setTurnstileToken("")}
+                onError={() =>
+                  setErrorMsg("Gagal memuat verifikasi keamanan. Muat ulang halaman.")
+                }
+                action="register"
+                resetKey={turnstileResetKey}
+              />
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !turnstileToken}
                 className="w-full py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors mt-2"
               >
                 {loading ? "Mengirim Kode..." : "Daftar & Kirim Kode OTP →"}
