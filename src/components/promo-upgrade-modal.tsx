@@ -100,7 +100,7 @@ export function PromoUpgradeModal({
             Upgrade ke VIP & Bikin PRD Tanpa Batas!
           </h3>
           <p className="text-xs text-muted leading-relaxed mb-4">
-            Anda saat ini menggunakan paket <strong className="text-indigo-300 uppercase">{userPlan || "Trial"} ({prdCount || 0}/3 PRD)</strong>. Upgrade ke VIP untuk membuka akses model AI premium & fitur lengkap:
+            Anda saat ini menggunakan paket <strong className="text-indigo-300 uppercase">{userPlan || "Trial"}</strong>. Upgrade ke VIP untuk membuka akses model AI premium & pembuatan PRD tanpa batas harian:
           </p>
 
           <ul className="space-y-2 text-xs text-muted mb-6">

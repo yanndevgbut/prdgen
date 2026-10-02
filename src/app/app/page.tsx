@@ -228,6 +228,43 @@ export default function WorkspacePage() {
     return () => window.removeEventListener("click", handleGlobalClick);
   }, []);
 
+  const [resetCountdown, setResetCountdown] = useState<string>("");
+
+  // Live countdown timer untuk reset kredit rolling 24 jam
+  useEffect(() => {
+    const updateTime = () => {
+      if (!profile?.credits_reset_at) {
+        setResetCountdown("");
+        return;
+      }
+      const diff = new Date(profile.credits_reset_at).getTime() - Date.now();
+      if (diff <= 0) {
+        setResetCountdown("sebentar lagi");
+        return;
+      }
+      const totalMinutes = Math.ceil(diff / (1000 * 60));
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+      if (hours > 0 && mins > 0) {
+        setResetCountdown(`${hours}j ${mins}m`);
+      } else if (hours > 0) {
+        setResetCountdown(`${hours}j`);
+      } else {
+        setResetCountdown(`${mins}m`);
+      }
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 30000);
+    return () => clearInterval(interval);
+  }, [profile?.credits_reset_at]);
+
+  const userPlan = (profile?.plan || "trial").toLowerCase();
+  const isUnlimitedPlan = userPlan === "vip" || userPlan === "enterprise";
+  const maxPlanCredits = userPlan === "basic" ? 10 : 3;
+  const currentCredits = typeof profile?.credits === "number" ? profile.credits : maxPlanCredits;
+  const hasAvailableCredits = isUnlimitedPlan || currentCredits > 0;
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
@@ -263,6 +300,12 @@ export default function WorkspacePage() {
       return;
     }
 
+    if (!hasAvailableCredits) {
+      setPromoModalOpen(true);
+      showToast("Kredit harian kamu telah habis. Upgrade ke VIP untuk akses tanpa batas.");
+      return;
+    }
+
     setQuestionLoading(true);
     setQuestionPage(1);
     setCurrentStep(2);
@@ -279,6 +322,18 @@ export default function WorkspacePage() {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal menyiapkan pertanyaan AI");
+
+      if (typeof data.credits === "number") {
+        setProfile((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                credits: data.credits,
+                credits_reset_at: data.creditsResetAt || prev.credits_reset_at,
+              }
+            : prev
+        );
+      }
 
       if (Array.isArray(data.questions) && data.questions.length > 0) {
         setQuestions(data.questions);
@@ -301,6 +356,9 @@ export default function WorkspacePage() {
         setAnswers(initialAnswers);
       }
     } catch (err: any) {
+      if (err.message && err.message.toLowerCase().includes("kredit")) {
+        setPromoModalOpen(true);
+      }
       console.warn("Using fallback questions:", err.message);
       const fallbackList: DynamicQuestion[] = [
         {
@@ -416,7 +474,24 @@ export default function WorkspacePage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal generate PRD");
+      if (!res.ok) {
+        if (data.error && data.error.toLowerCase().includes("kredit")) {
+          setPromoModalOpen(true);
+        }
+        throw new Error(data.error || "Gagal generate PRD");
+      }
+
+      if (typeof data.credits === "number") {
+        setProfile((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                credits: data.credits,
+                credits_reset_at: data.creditsResetAt || prev.credits_reset_at,
+              }
+            : prev
+        );
+      }
 
       setActivePrd(data.prd);
       setHistoryList((prev) => [data.prd, ...prev.filter((p) => p.id !== data.prd.id)]);
@@ -436,6 +511,12 @@ export default function WorkspacePage() {
     const instructionToUse = customInstruction || revisionInput;
     if (!instructionToUse.trim() || !activePrd) return;
 
+    if (!hasAvailableCredits) {
+      setPromoModalOpen(true);
+      showToast("Kredit harian kamu telah habis. Upgrade ke VIP untuk akses tanpa batas.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/ai/revise", {
@@ -449,7 +530,24 @@ export default function WorkspacePage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal merevisi PRD");
+      if (!res.ok) {
+        if (data.error && data.error.toLowerCase().includes("kredit")) {
+          setPromoModalOpen(true);
+        }
+        throw new Error(data.error || "Gagal merevisi PRD");
+      }
+
+      if (typeof data.credits === "number") {
+        setProfile((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                credits: data.credits,
+                credits_reset_at: data.creditsResetAt || prev.credits_reset_at,
+              }
+            : prev
+        );
+      }
 
       setActivePrd(data.prd);
       setHistoryList((prev) =>
@@ -641,9 +739,9 @@ export default function WorkspacePage() {
             )}
           </div>
 
-          {/* User Info / Quota */}
-          <div className="p-3 bg-bg-surface border border-border rounded-lg text-xs">
-            <div className="flex justify-between items-center text-[11px] mb-1">
+          {/* User Info / Daily Credits Widget */}
+          <div className="p-3 bg-bg-surface border border-border rounded-lg text-xs space-y-2">
+            <div className="flex justify-between items-center text-[11px]">
               <span className="font-semibold text-white truncate mr-2">
                 {profile?.full_name || user?.email?.split("@")[0] || "User"}
               </span>
@@ -651,11 +749,39 @@ export default function WorkspacePage() {
                 {profile?.plan || "Trial"}
               </span>
             </div>
-            <div className="text-[10px] text-dim">
-              {profile?.plan === "trial"
-                ? `${profile?.prd_count || 0}/3 PRD dibuat (Trial)`
-                : "Akses paket aktif"}
-            </div>
+
+            {isUnlimitedPlan ? (
+              <div className="text-[11px] font-medium text-emerald-400 bg-emerald-950/20 border border-emerald-500/20 rounded p-2 text-center">
+                Kredit: Unlimited (VIP)
+              </div>
+            ) : (
+              <div className="bg-bg-input border border-border rounded p-2 space-y-1">
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="text-dim">Kredit Harian:</span>
+                  <span
+                    className={`font-bold font-mono ${
+                      currentCredits > 0 ? "text-indigo-300" : "text-red-400"
+                    }`}
+                  >
+                    {currentCredits} / {maxPlanCredits}
+                  </span>
+                </div>
+                {resetCountdown && (
+                  <div className="flex justify-between items-center text-[9px] text-dim">
+                    <span>Reset dalam:</span>
+                    <span className="font-mono text-muted">{resetCountdown}</span>
+                  </div>
+                )}
+                {currentCredits === 0 && (
+                  <Link
+                    href="/pricing"
+                    className="block text-center text-[10px] text-indigo-400 hover:text-indigo-300 hover:underline pt-1 font-semibold"
+                  >
+                    Upgrade ke VIP &rarr;
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         </aside>
 
@@ -1251,85 +1377,140 @@ export default function WorkspacePage() {
                 {/* TAB 2: INTERACTIVE USER FLOWS */}
                 {activeStudioTab === "flows" && (
                   <div className="space-y-4 animate-step-enter">
-                    {parsedFlows.map((flow, fIdx) => (
-                      <div key={fIdx} className="bg-bg-surface border border-border rounded-xl p-5">
-                        <div className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-primary-hover" />
-                          <span>{flow.title}</span>
+                    {parsedFlows.length === 0 ? (
+                      <div className="bg-bg-surface border border-border rounded-xl p-8 text-center space-y-3">
+                        <div className="w-10 h-10 rounded-full bg-bg-input border border-border flex items-center justify-center mx-auto text-muted">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                          </svg>
                         </div>
-                        <div className="space-y-2.5">
-                          {flow.steps.map((step, sIdx) => (
-                            <div key={sIdx} className="flex items-start gap-3 text-xs text-muted">
-                              <span className="w-5 h-5 rounded-full bg-bg-input border border-border flex items-center justify-center font-bold text-[10px] text-white flex-shrink-0 mt-0.5">
-                                {sIdx + 1}
-                              </span>
-                              <div className="p-2.5 bg-bg-input border border-border rounded-lg flex-1 leading-relaxed text-slate-200">
-                                {step}
-                              </div>
-                            </div>
-                          ))}
+                        <div>
+                          <div className="text-sm font-bold text-white mb-1">
+                            Alur Visual Tidak Terdeteksi
+                          </div>
+                          <p className="text-xs text-muted max-w-md mx-auto leading-relaxed">
+                            Rincian alur pengguna tetap dapat kamu baca lengkap pada Bab 7 di tab <strong className="text-white">Dokumen PRD</strong>. Gunakan fitur revisi AI untuk menstrukturkan ulang format alur jika diinginkan.
+                          </p>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setActiveStudioTab("doc")}
+                          className="px-4 py-2 bg-bg-input hover:text-white border border-border text-muted text-xs font-semibold rounded-lg transition-colors"
+                        >
+                          Lihat Bab 7 di Dokumen PRD &rarr;
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      parsedFlows.map((flow, fIdx) => (
+                        <div key={fIdx} className="bg-bg-surface border border-border rounded-xl p-5">
+                          <div className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-primary-hover" />
+                            <span>{flow.title}</span>
+                          </div>
+                          <div className="space-y-2.5">
+                            {flow.steps.map((step, sIdx) => (
+                              <div key={sIdx} className="flex items-start gap-3 text-xs text-muted">
+                                <span className="w-5 h-5 rounded-full bg-bg-input border border-border flex items-center justify-center font-bold text-[10px] text-white flex-shrink-0 mt-0.5">
+                                  {sIdx + 1}
+                                </span>
+                                <div className="p-2.5 bg-bg-input border border-border rounded-lg flex-1 leading-relaxed text-slate-200">
+                                  {step}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
 
                 {/* TAB 3: VISUAL ROADMAP */}
                 {activeStudioTab === "roadmap" && (
                   <div className="space-y-4 animate-step-enter">
-                    {parsedRoadmap.map((phase, pIdx) => (
-                      <div key={pIdx} className="bg-bg-surface border border-border rounded-xl p-5">
-                        <div className="flex justify-between items-start flex-wrap gap-2 mb-2 pb-2 border-b border-border">
-                          <div>
-                            <div className="text-sm font-bold text-white">{phase.phaseTitle}</div>
-                            {phase.timeline && (
-                              <div className="text-xs text-indigo-400 font-medium mt-0.5">{phase.timeline}</div>
-                            )}
-                          </div>
-                          <span className="text-[10px] px-2 py-0.5 bg-primary/20 text-indigo-300 rounded font-semibold border border-primary/30">
-                            Fase {pIdx + 1}
-                          </span>
+                    {parsedRoadmap.length === 0 ? (
+                      <div className="bg-bg-surface border border-border rounded-xl p-8 text-center space-y-3">
+                        <div className="w-10 h-10 rounded-full bg-bg-input border border-border flex items-center justify-center mx-auto text-muted">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                          </svg>
                         </div>
-
-                        {/* SWIPEABLE ROADMAP MILESTONES */}
-                        {phase.milestones && phase.milestones.length > 0 && (
-                          <div className="mb-3">
-                            <div className="text-[11px] text-dim uppercase tracking-wider font-semibold mb-1.5">
-                              Key Milestones:
-                            </div>
-                            <div className="swipe-scroll gap-1.5 pb-1">
-                              {phase.milestones.map((m, mIdx) => (
-                                <span
-                                  key={mIdx}
-                                  className="flex-shrink-0 text-[11px] px-2.5 py-1 bg-white/5 border border-border rounded-md text-slate-300"
-                                >
-                                  {m}
-                                </span>
-                              ))}
-                            </div>
+                        <div>
+                          <div className="text-sm font-bold text-white mb-1">
+                            Roadmap Visual Tidak Terdeteksi
                           </div>
-                        )}
-
-                        <div className="space-y-1.5 pt-1">
-                          <div className="text-[11px] text-dim uppercase tracking-wider font-semibold mb-1">
-                            Deliverables & Task Sprint:
-                          </div>
-                          {phase.tasks.map((t, tIdx) => (
-                            <div
-                              key={tIdx}
-                              className="flex items-center gap-2 text-xs p-2 bg-bg-input border border-border rounded-lg text-muted"
-                            >
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${t.done ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
-                                {t.done ? "Selesai" : "Proses"}
-                              </span>
-                              <span className={t.done ? "line-through text-dim" : "text-slate-200"}>
-                                {t.task}
-                              </span>
-                            </div>
-                          ))}
+                          <p className="text-xs text-muted max-w-md mx-auto leading-relaxed">
+                            Rencana sprint dan milestone tetap dapat kamu baca lengkap pada Bab 14 di tab <strong className="text-white">Dokumen PRD</strong>. Gunakan fitur revisi AI untuk menstrukturkan ulang format timeline jika diinginkan.
+                          </p>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setActiveStudioTab("doc")}
+                          className="px-4 py-2 bg-bg-input hover:text-white border border-border text-muted text-xs font-semibold rounded-lg transition-colors"
+                        >
+                          Lihat Bab 14 di Dokumen PRD &rarr;
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      parsedRoadmap.map((phase, pIdx) => (
+                        <div key={pIdx} className="bg-bg-surface border border-border rounded-xl p-5">
+                          <div className="flex justify-between items-start flex-wrap gap-2 mb-2 pb-2 border-b border-border">
+                            <div>
+                              <div className="text-sm font-bold text-white">{phase.phaseTitle}</div>
+                              {phase.timeline && (
+                                <div className="text-xs text-indigo-400 font-medium mt-0.5">{phase.timeline}</div>
+                              )}
+                            </div>
+                            <span className="text-[10px] px-2 py-0.5 bg-primary/20 text-indigo-300 rounded font-semibold border border-primary/30">
+                              Fase {pIdx + 1}
+                            </span>
+                          </div>
+
+                          {/* SWIPEABLE ROADMAP MILESTONES */}
+                          {phase.milestones && phase.milestones.length > 0 && (
+                            <div className="mb-3">
+                              <div className="text-[11px] text-dim uppercase tracking-wider font-semibold mb-1.5">
+                                Key Milestones:
+                              </div>
+                              <div className="swipe-scroll gap-1.5 pb-1">
+                                {phase.milestones.map((m, mIdx) => (
+                                  <span
+                                    key={mIdx}
+                                    className="flex-shrink-0 text-[11px] px-2.5 py-1 bg-white/5 border border-border rounded-md text-slate-300"
+                                  >
+                                    {m}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="space-y-1.5 pt-1">
+                            <div className="text-[11px] text-dim uppercase tracking-wider font-semibold mb-1">
+                              Deliverables & Task Sprint:
+                            </div>
+                            {phase.tasks.map((t, tIdx) => (
+                              <div
+                                key={tIdx}
+                                className="flex items-center gap-2 text-xs p-2 bg-bg-input border border-border rounded-lg text-muted"
+                              >
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${t.done ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
+                                  {t.done ? "Selesai" : "Proses"}
+                                </span>
+                                <span className={t.done ? "line-through text-dim" : "text-slate-200"}>
+                                  {t.task}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
 
@@ -1546,78 +1727,133 @@ export default function WorkspacePage() {
 
                 {activeStudioTab === "flows" && (
                   <div className="space-y-4">
-                    {parsedFlows.map((flow, fIdx) => (
-                      <div key={fIdx} className="bg-bg-surface border border-border rounded-xl p-5">
-                        <div className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                          <span>{flow.title}</span>
+                    {parsedFlows.length === 0 ? (
+                      <div className="bg-bg-surface border border-border rounded-xl p-8 text-center space-y-3">
+                        <div className="w-10 h-10 rounded-full bg-bg-input border border-border flex items-center justify-center mx-auto text-muted">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                          </svg>
                         </div>
-                        <div className="space-y-2.5">
-                          {flow.steps.map((step, sIdx) => (
-                            <div key={sIdx} className="flex items-start gap-3 text-xs text-muted">
-                              <span className="w-5 h-5 rounded-full bg-bg-input border border-border flex items-center justify-center font-bold text-[10px] text-white flex-shrink-0 mt-0.5">
-                                {sIdx + 1}
-                              </span>
-                              <div className="p-2.5 bg-bg-input border border-border rounded-lg flex-1 leading-relaxed text-slate-200">
-                                {step}
-                              </div>
-                            </div>
-                          ))}
+                        <div>
+                          <div className="text-sm font-bold text-white mb-1">
+                            Alur Visual Tidak Terdeteksi
+                          </div>
+                          <p className="text-xs text-muted max-w-md mx-auto leading-relaxed">
+                            Rincian alur pengguna tetap dapat kamu baca lengkap pada Bab 7 di tab <strong className="text-white">Dokumen PRD</strong>.
+                          </p>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setActiveStudioTab("doc")}
+                          className="px-4 py-2 bg-bg-input hover:text-white border border-border text-muted text-xs font-semibold rounded-lg transition-colors"
+                        >
+                          Lihat Bab 7 di Dokumen PRD &rarr;
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      parsedFlows.map((flow, fIdx) => (
+                        <div key={fIdx} className="bg-bg-surface border border-border rounded-xl p-5">
+                          <div className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                            <span>{flow.title}</span>
+                          </div>
+                          <div className="space-y-2.5">
+                            {flow.steps.map((step, sIdx) => (
+                              <div key={sIdx} className="flex items-start gap-3 text-xs text-muted">
+                                <span className="w-5 h-5 rounded-full bg-bg-input border border-border flex items-center justify-center font-bold text-[10px] text-white flex-shrink-0 mt-0.5">
+                                  {sIdx + 1}
+                                </span>
+                                <div className="p-2.5 bg-bg-input border border-border rounded-lg flex-1 leading-relaxed text-slate-200">
+                                  {step}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
 
                 {activeStudioTab === "roadmap" && (
                   <div className="space-y-4">
-                    {parsedRoadmap.map((phase, pIdx) => (
-                      <div key={pIdx} className="bg-bg-surface border border-border rounded-xl p-5">
-                        <div className="flex justify-between items-start flex-wrap gap-2 mb-2 pb-2 border-b border-border">
-                          <div>
-                            <div className="text-sm font-bold text-white">{phase.phaseTitle}</div>
-                            {phase.timeline && (
-                              <div className="text-xs text-indigo-400 font-medium mt-0.5">{phase.timeline}</div>
-                            )}
-                          </div>
-                          <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-semibold border border-emerald-500/30">
-                            Fase {pIdx + 1}
-                          </span>
+                    {parsedRoadmap.length === 0 ? (
+                      <div className="bg-bg-surface border border-border rounded-xl p-8 text-center space-y-3">
+                        <div className="w-10 h-10 rounded-full bg-bg-input border border-border flex items-center justify-center mx-auto text-muted">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                          </svg>
                         </div>
-
-                        {phase.milestones && phase.milestones.length > 0 && (
-                          <div className="mb-3">
-                            <div className="text-[11px] text-dim uppercase tracking-wider font-semibold mb-1.5">
-                              Key Milestones:
-                            </div>
-                            <div className="swipe-scroll gap-1.5 pb-1">
-                              {phase.milestones.map((m, mIdx) => (
-                                <span
-                                  key={mIdx}
-                                  className="flex-shrink-0 text-[11px] px-2.5 py-1 bg-white/5 border border-border rounded-md text-slate-300"
-                                >
-                                  {m}
-                                </span>
-                              ))}
-                            </div>
+                        <div>
+                          <div className="text-sm font-bold text-white mb-1">
+                            Roadmap Visual Tidak Terdeteksi
                           </div>
-                        )}
-
-                        <div className="space-y-1.5 pt-1">
-                          {phase.tasks.map((t, tIdx) => (
-                            <div
-                              key={tIdx}
-                              className="flex items-center gap-2 text-xs p-2 bg-bg-input border border-border rounded-lg text-muted"
-                            >
-                              <svg className="w-3 h-3 text-emerald-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                              <span className="text-slate-200">{t.task}</span>
-                            </div>
-                          ))}
+                          <p className="text-xs text-muted max-w-md mx-auto leading-relaxed">
+                            Rencana sprint dan milestone tetap dapat kamu baca lengkap pada Bab 14 di tab <strong className="text-white">Dokumen PRD</strong>.
+                          </p>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setActiveStudioTab("doc")}
+                          className="px-4 py-2 bg-bg-input hover:text-white border border-border text-muted text-xs font-semibold rounded-lg transition-colors"
+                        >
+                          Lihat Bab 14 di Dokumen PRD &rarr;
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      parsedRoadmap.map((phase, pIdx) => (
+                        <div key={pIdx} className="bg-bg-surface border border-border rounded-xl p-5">
+                          <div className="flex justify-between items-start flex-wrap gap-2 mb-2 pb-2 border-b border-border">
+                            <div>
+                              <div className="text-sm font-bold text-white">{phase.phaseTitle}</div>
+                              {phase.timeline && (
+                                <div className="text-xs text-indigo-400 font-medium mt-0.5">{phase.timeline}</div>
+                              )}
+                            </div>
+                            <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-semibold border border-emerald-500/30">
+                              Fase {pIdx + 1}
+                            </span>
+                          </div>
+
+                          {phase.milestones && phase.milestones.length > 0 && (
+                            <div className="mb-3">
+                              <div className="text-[11px] text-dim uppercase tracking-wider font-semibold mb-1.5">
+                                Key Milestones:
+                              </div>
+                              <div className="swipe-scroll gap-1.5 pb-1">
+                                {phase.milestones.map((m, mIdx) => (
+                                  <span
+                                    key={mIdx}
+                                    className="flex-shrink-0 text-[11px] px-2.5 py-1 bg-white/5 border border-border rounded-md text-slate-300"
+                                  >
+                                    {m}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="space-y-1.5 pt-1">
+                            {phase.tasks.map((t, tIdx) => (
+                              <div
+                                key={tIdx}
+                                className="flex items-center gap-2 text-xs p-2 bg-bg-input border border-border rounded-lg text-muted"
+                              >
+                                <svg className="w-3 h-3 text-emerald-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span className="text-slate-200">{t.task}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
               </div>

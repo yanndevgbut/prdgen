@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     plan subscription_plan NOT NULL DEFAULT 'trial',
     status user_status NOT NULL DEFAULT 'active',
     prd_count INTEGER NOT NULL DEFAULT 0,
+    credits INTEGER NOT NULL DEFAULT 3,
+    credits_reset_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (NOW() + INTERVAL '24 hours'),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -184,6 +186,11 @@ CREATE TABLE IF NOT EXISTS public.transactions (
 );
 
 -- Migrasi aman untuk instalasi lama yang tabelnya sudah ada
+ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS credits INTEGER NOT NULL DEFAULT 3;
+ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS credits_reset_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (NOW() + INTERVAL '24 hours');
+
 ALTER TABLE public.transactions
     ADD COLUMN IF NOT EXISTS is_sandbox BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE public.transactions
@@ -497,6 +504,7 @@ VALUES
     ('pakasir_config', '{"slug": "prdgen", "api_key": "", "webhook_secret": "", "base_url": "https://app.pakasir.com"}'::jsonb, 'Konfigurasi Payment Gateway Pakasir v2 (Server-Only)', false),
     ('maintenance_mode', '{"enabled": false, "message": "Kami sedang melakukan peningkatan performa dan update model AI. PRDGen akan kembali aktif dalam beberapa menit.", "eta": "24 Sep 2026, 18:00 WIB"}'::jsonb, 'Status Maintenance Platform', true),
     ('general_settings', '{"site_name": "PRDGen", "free_quota": 3, "default_lang": "id", "allow_registration": true}'::jsonb, 'Pengaturan Umum Platform', true),
+    ('credit_plans', '{"trial": 3, "basic": 10, "vip": 0, "enterprise": 0}'::jsonb, 'Konfigurasi Jatah Kredit Harian per Paket (Reset 24 Jam)', true),
     ('pricing_plans', '{"basic_monthly": 99000, "basic_yearly": 79000, "vip_monthly": 249000, "vip_yearly": 199000, "enterprise_monthly": 799000, "enterprise_yearly": 639000, "yearly_discount_pct": 20}'::jsonb, 'Konfigurasi Harga Paket Berlangganan', true)
 ON CONFLICT (key) DO NOTHING;
 

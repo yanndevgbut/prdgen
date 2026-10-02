@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generatePRDFromAI } from "@/lib/ai/9router";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
+import { consumeCredits } from "@/lib/security/credits";
 import { z } from "zod";
 
 const generateSchema = z.object({
@@ -121,21 +122,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Cek kuota trial
-    if (profile?.plan === "trial") {
-      const { data: settingData } = await adminSupabase
-        .from("system_settings")
-        .select("value")
-        .eq("key", "general_settings")
-        .single();
-
-      const freeQuota = (settingData?.value as any)?.free_quota || 3;
-      if (profile.prd_count >= freeQuota) {
-        return NextResponse.json(
-          { error: `Batas kuota trial (${freeQuota} PRD) telah tercapai. Silakan upgrade ke paket VIP.` },
-          { status: 403 }
-        );
-      }
+    // 4. Cek & Konsumsi Kredit Harian (Reset Rolling 24 Jam)
+    const creditResult = await consumeCredits(user.id, 1);
+    if (!creditResult.success) {
+      return NextResponse.json(
+        { error: creditResult.error || "Kredit harian kamu telah habis." },
+        { status: 403 }
+      );
     }
 
     // 5. Generate PRD via 9router AI Gateway
@@ -186,12 +179,17 @@ export async function POST(req: NextRequest) {
         prd_id: newPrd.id,
         title: newPrd.title,
         model_used: modelOverride || "default",
+        remaining_credits: creditResult.remainingCredits,
       },
     });
 
     return NextResponse.json({
       success: true,
       prd: newPrd,
+      credits: creditResult.remainingCredits,
+      maxCredits: creditResult.maxCredits,
+      isUnlimited: creditResult.isUnlimited,
+      creditsResetAt: creditResult.resetAt,
     });
   } catch (error: any) {
     console.error("API Generate Error:", error);

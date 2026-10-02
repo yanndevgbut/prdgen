@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateDynamicQuestions } from "@/lib/ai/9router";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
+import { checkAndRefreshCredits } from "@/lib/security/credits";
 import { z } from "zod";
 
 const questionRequestSchema = z.object({
@@ -50,11 +51,11 @@ export async function POST(req: NextRequest) {
 
     const { title, description } = validation.data;
 
-    // Cek apakah user berstatus banned + kuota trial (konsisten dengan generate)
+    // Cek apakah user berstatus banned
     const adminSupabase = createAdminClient();
     const { data: profile } = await adminSupabase
       .from("profiles")
-      .select("status, plan, prd_count")
+      .select("status")
       .eq("id", user.id)
       .single();
 
@@ -65,20 +66,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (profile?.plan === "trial") {
-      const { data: settingData } = await adminSupabase
-        .from("system_settings")
-        .select("value")
-        .eq("key", "general_settings")
-        .single();
-
-      const freeQuota = (settingData?.value as any)?.free_quota || 3;
-      if ((profile.prd_count || 0) >= freeQuota) {
-        return NextResponse.json(
-          { error: `Batas kuota trial (${freeQuota} PRD) telah tercapai. Silakan upgrade ke paket VIP.` },
-          { status: 403 }
-        );
-      }
+    // Refresh kredit otomatis jika sudah lewat 24 jam (Tanya jawab gratis 0 kredit)
+    const creditStatus = await checkAndRefreshCredits(user.id);
+    if (!creditStatus.isUnlimited && creditStatus.credits <= 0) {
+      return NextResponse.json(
+        {
+          error: `Kredit harian (${creditStatus.plan.toUpperCase()}) kamu habis. Kredit akan di-reset otomatis dalam ${creditStatus.timeRemainingText}, atau upgrade ke paket VIP untuk akses tanpa batas.`,
+        },
+        { status: 403 }
+      );
     }
 
     // Generate tailored questions via 9router AI
@@ -90,6 +86,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       questions,
+      credits: creditStatus.credits,
+      isUnlimited: creditStatus.isUnlimited,
+      creditsResetAt: creditStatus.resetAt,
     });
   } catch (error: any) {
     console.error("API Questions Error:", error);

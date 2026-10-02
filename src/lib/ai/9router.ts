@@ -562,44 +562,92 @@ Tulis ulang seluruh dokumen PRD dengan perubahan sesuai instruksi di atas.`;
 
 /**
  * Helper Parser: Mengekstrak Alur Pengguna dari Bab 7 PRD Markdown.
- * Regex dibuat fleksibel agar cocok dengan berbagai variasi judul/format yang dihasilkan AI.
+ * Mendukung format heading markdown (##, ###, ####), format tebal (**7.x ...**),
+ * penomoran langsung (7.x ...), dan fallback otomatis jika alur tidak dibagi sub-bab.
  */
 export function parseUserFlowsFromMarkdown(markdown: string): ParsedUserFlow[] {
   const flows: ParsedUserFlow[] = [];
+  if (!markdown || typeof markdown !== "string") return flows;
 
-  // Cari Bab 7 dengan judul apa pun yang berkaitan dengan alur pengguna
+  // 1. Temukan bagian Bab 7
   const bab7Match =
-    markdown.match(/#\s*7\.\s*[^\n]*?(?:Alur|Flow)[^\n]*\n([\s\S]*?)(?=\n#\s*8\.|\n#\s*[0-9]+\.(?:\s|$)|\s*$)/i) ||
-    markdown.match(/#\s*7\.\s*([^\n]*)\n([\s\S]*?)(?=\n#\s*8\.|\n#\s*[0-9]+\.(?:\s|$)|\s*$)/i);
+    markdown.match(/(?:^|\n)#{1,3}\s*(?:Bab\s*)?7[.:\s][^\n]*\n([\s\S]*?)(?=(?:\n#{1,3}\s*(?:Bab\s*)?8[.:\s]|\n#{1,2}\s*[0-9]+[.:\s]|\s*$))/i) ||
+    markdown.match(/(?:^|\n)#{1,3}\s*[^\n]*?(?:Alur\s*Pengguna|User\s*Flows?|Alur\s*Sistem)[^\n]*\n([\s\S]*?)(?=(?:\n#{1,3}\s*[^\n]*?(?:Model\s*Data|Database|Skema)|\n#{1,2}\s*[0-9]+[.:\s]|\s*$))/i);
 
-  if (bab7Match) {
-    const bab7Content = bab7Match[bab7Match.length - 1];
+  if (!bab7Match) return flows;
 
-    // Sub-alur: ## / ### / 7.x dengan berbagai format
-    const subFlowRegex =
-      /#{2,4}\s*(?:7\.\d+[.:]?\s*)?([^\n]+)([\s\S]*?)(?=#{2,4}\s*(?:7\.\d+[.:]?\s*)?[^\n]+|$)/gi;
-    let subMatch;
+  const bab7Content = bab7Match[1].trim();
+  if (!bab7Content) return flows;
 
-    while ((subMatch = subFlowRegex.exec(bab7Content)) !== null) {
-      const rawTitle = subMatch[1].trim();
-      // Lewati baris yang bukan judul alur (misal bold marker)
-      const title = rawTitle.replace(/\*\*/g, "").replace(/^[:.\s-]+/, "").trim();
-      if (!title) continue;
+  // 2. Split sub-alur (## 7.x, ###, **7.x**, atau **Alur ...**)
+  const rawSections = bab7Content
+    .split(/\n(?=#{2,4}\s|\*\*(?:7\.\d+|[0-9]+\.\d+|Alur)|\b(?:7\.\d+[.:\s]))/gi)
+    .map((s) => s.trim())
+    .filter(Boolean);
 
-      const body = subMatch[2];
-      const steps: string[] = [];
+  for (const section of rawSections) {
+    const lines = section.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) continue;
 
-      // Langkah: 1. / - / * / a. / "Langkah N:"
-      const stepRegex = /^\s*(?:\d+\.|[a-z]\.|[-*]|Langkah\s+\d+[:.])\s*(.+)$/gim;
-      let stepMatch;
-      while ((stepMatch = stepRegex.exec(body)) !== null) {
+    const firstLine = lines[0];
+    const isHeading =
+      firstLine.startsWith("#") ||
+      firstLine.startsWith("**") ||
+      /^[0-9]+\.\d+/i.test(firstLine) ||
+      /alur|flow|happy\s*path|error|batal|validasi/i.test(firstLine);
+
+    let title = "Alur Kerja Sistem";
+    let stepLines = lines;
+
+    if (isHeading) {
+      title = firstLine
+        .replace(/^#{1,4}\s*/, "")
+        .replace(/\*\*/g, "")
+        .replace(/^[0-9]+\.\d+[.:\s-]*/, "")
+        .replace(/^[:.\s-]+/, "")
+        .trim();
+      stepLines = lines.slice(1);
+    }
+
+    if (!title) title = "Alur Kerja Sistem";
+
+    const steps: string[] = [];
+    for (const line of stepLines) {
+      const stepMatch = line.match(/^(?:\d+[.:\)]|[a-z][.:\)]|[-*•]|Langkah\s*\d+[:.]?)\s*(.+)$/i);
+      if (stepMatch) {
         const stepText = stepMatch[1].replace(/\*\*/g, "").trim();
-        if (stepText) steps.push(stepText);
+        if (stepText && !stepText.startsWith("#")) {
+          steps.push(stepText);
+        }
+      } else if (line && !line.startsWith("#") && !line.startsWith("|") && !line.startsWith(">")) {
+        if (steps.length > 0 && !line.startsWith("-")) {
+          steps[steps.length - 1] += " " + line;
+        } else if (steps.length === 0 && line.length > 5) {
+          steps.push(line.replace(/\*\*/g, "").trim());
+        }
       }
+    }
 
-      if (steps.length > 0) {
-        flows.push({ title, steps });
+    if (steps.length > 0) {
+      flows.push({ title, steps });
+    }
+  }
+
+  // 3. Fallback jika tidak ada sub-alur terpisah tapi ada daftar langkah langsung
+  if (flows.length === 0) {
+    const allSteps: string[] = [];
+    const allLines = bab7Content.split("\n").map((l) => l.trim()).filter(Boolean);
+    for (const l of allLines) {
+      const sm = l.match(/^(?:\d+[.:\)]|[a-z][.:\)]|[-*•]|Langkah\s*\d+[:.]?)\s*(.+)$/i);
+      if (sm) {
+        allSteps.push(sm[1].replace(/\*\*/g, "").trim());
       }
+    }
+    if (allSteps.length > 0) {
+      flows.push({
+        title: "Alur Utama Pengguna",
+        steps: allSteps,
+      });
     }
   }
 
@@ -608,57 +656,120 @@ export function parseUserFlowsFromMarkdown(markdown: string): ParsedUserFlow[] {
 
 /**
  * Helper Parser: Mengekstrak Roadmap Pengembangan dari Bab 14 PRD Markdown.
- * Regex dibuat fleksibel agar cocok dengan berbagai variasi judul/format.
+ * Mendukung berbagai variasi format fase (##, ###, **Fase ...**), task (- [ ], - [x], bullet point, angka),
+ * dan target milestone.
  */
 export function parseRoadmapFromMarkdown(markdown: string): ParsedRoadmapPhase[] {
   const phases: ParsedRoadmapPhase[] = [];
+  if (!markdown || typeof markdown !== "string") return phases;
 
+  // 1. Temukan bagian Bab 14 (Roadmap, Sprint, Timeline, Rencana Pengembangan)
   const bab14Match =
-    markdown.match(/#\s*14\.\s*[^\n]*?(?:Roadmap|Sprint|Milestone)[^\n]*\n([\s\S]*?)(?=\n#\s*[0-9]+\.(?:\s|$)|\s*$)/i) ||
-    markdown.match(/#\s*14\.\s*([^\n]*)\n([\s\S]*?)(?=\n#\s*[0-9]+\.(?:\s|$)|\s*$)/i);
+    markdown.match(/(?:^|\n)#{1,3}\s*(?:Bab\s*)?14[.:\s][^\n]*\n([\s\S]*?)(?=(?:\n#{1,3}\s*(?:Bab\s*)?15[.:\s]|\n#{1,2}\s*[0-9]+[.:\s]|\n---|\s*$))/i) ||
+    markdown.match(/(?:^|\n)#{1,3}\s*[^\n]*?(?:Roadmap|Sprint|Timeline|Rencana\s*Pengembangan|Jadwal\s*Rilis)[^\n]*\n([\s\S]*?)(?=(?:\n#{1,3}\s*[0-9]+[.:\s]|\n---|\s*$))/i);
 
-  if (bab14Match) {
-    const bab14Content = bab14Match[bab14Match.length - 1];
+  if (!bab14Match) return phases;
 
-    const phaseRegex = /#{2,4}\s*([^\n]+)([\s\S]*?)(?=#{2,4}\s*[^\n]+|$)/gi;
-    let phaseMatch;
+  const bab14Content = bab14Match[1].trim();
+  if (!bab14Content) return phases;
 
-    while ((phaseMatch = phaseRegex.exec(bab14Content)) !== null) {
-      const rawTitle = phaseMatch[1].replace(/\*\*/g, "").replace(/^[:.\s-]+/, "").trim();
-      if (!rawTitle) continue;
+  // 2. Split fase: ## / ### / **Fase ...** / Fase N
+  const sectionSplitRegex = /\n(?=#{2,4}\s|\*\*(?:Fase|Sprint|Phase|Tahap)|\b(?:Fase|Sprint|Phase|Tahap)\s*\d+[.:\s])/gi;
+  const rawSections = bab14Content.split(sectionSplitRegex).map((s) => s.trim()).filter(Boolean);
 
-      const body = phaseMatch[2];
+  for (const section of rawSections) {
+    const lines = section.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) continue;
 
-      const targetMatch = body.match(/\*\*Target:?\*\*\s*([^\n]+)/i);
-      const milestones = targetMatch
-        ? targetMatch[1]
-            .split(/,|\bdan\b/i)
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : [];
+    const firstLine = lines[0];
+    const isHeading =
+      firstLine.startsWith("#") ||
+      firstLine.startsWith("**") ||
+      /fase|sprint|phase|tahap|milestone|jadwal/i.test(firstLine);
 
-      const tasks: Array<{ task: string; done: boolean }> = [];
-      const taskRegex = /-\s*\[( |x)\]\s*(.+)/gi;
-      let tMatch;
-      while ((tMatch = taskRegex.exec(body)) !== null) {
+    let phaseTitle = "Fase Pengembangan";
+    let bodyLines = lines;
+
+    if (isHeading) {
+      phaseTitle = firstLine
+        .replace(/^#{1,4}\s*/, "")
+        .replace(/\*\*/g, "")
+        .replace(/^[:.\s-]+/, "")
+        .trim();
+      bodyLines = lines.slice(1);
+    }
+
+    if (!phaseTitle) phaseTitle = "Fase Pengembangan";
+
+    // Cari Target / Milestones
+    const bodyText = bodyLines.join("\n");
+    const targetMatch = bodyText.match(
+      /(?:\*\*|-)?\s*(?:Target|Milestone|Goal|Tujuan)[:.]?\s*\**\s*([^\n]+)/i
+    );
+
+    const milestones = targetMatch
+      ? targetMatch[1]
+          .replace(/\*\*/g, "")
+          .split(/,|\bdan\b|;/i)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+
+    // Cari Tasks (- [ ], - [x], * [ ], * , - , 1. )
+    const tasks: Array<{ task: string; done: boolean }> = [];
+    for (const line of bodyLines) {
+      const taskChecklistMatch = line.match(/^[-*•]\s*\[( |x)\]\s*(.+)$/i);
+      if (taskChecklistMatch) {
         tasks.push({
-          task: tMatch[2].replace(/\*\*/g, "").trim(),
-          done: tMatch[1].toLowerCase() === "x",
+          task: taskChecklistMatch[2].replace(/\*\*/g, "").trim(),
+          done: taskChecklistMatch[1].toLowerCase() === "x",
+        });
+      } else {
+        const bulletMatch = line.match(/^(?:[-*•]|\d+[.:\)])\s*(?:Task\s*\d+[.:\s]*)?(.+)$/i);
+        if (bulletMatch) {
+          const tText = bulletMatch[1].replace(/\*\*/g, "").trim();
+          if (
+            tText &&
+            !tText.toLowerCase().startsWith("target:") &&
+            !tText.toLowerCase().startsWith("goal:") &&
+            !tText.startsWith("#")
+          ) {
+            tasks.push({ task: tText, done: false });
+          }
+        }
+      }
+    }
+
+    if (tasks.length > 0 || milestones.length > 0 || isHeading) {
+      phases.push({
+        phaseTitle,
+        timeline: "",
+        milestones,
+        tasks,
+      });
+    }
+  }
+
+  // 3. Fallback jika tidak ada fase terpisah tapi ada task langsung
+  if (phases.length === 0) {
+    const allTasks: Array<{ task: string; done: boolean }> = [];
+    const allLines = bab14Content.split("\n").map((l) => l.trim()).filter(Boolean);
+    for (const line of allLines) {
+      const taskChecklistMatch = line.match(/^[-*•]\s*\[( |x)\]\s*(.+)$/i);
+      if (taskChecklistMatch) {
+        allTasks.push({
+          task: taskChecklistMatch[2].replace(/\*\*/g, "").trim(),
+          done: taskChecklistMatch[1].toLowerCase() === "x",
         });
       }
-
-      // Hanya masukkan fase yang punya judul wajar (mengandung Fase/Sprint/Tahap atau punya task)
-      const looksLikePhase =
-        /fase|sprint|tahap|phase|milestone/i.test(rawTitle) || tasks.length > 0;
-
-      if (looksLikePhase) {
-        phases.push({
-          phaseTitle: rawTitle,
-          timeline: "",
-          milestones: milestones,
-          tasks: tasks,
-        });
-      }
+    }
+    if (allTasks.length > 0) {
+      phases.push({
+        phaseTitle: "Fase 1: Implementasi Fitur",
+        timeline: "",
+        milestones: ["Penyelesaian tugas utama"],
+        tasks: allTasks,
+      });
     }
   }
 

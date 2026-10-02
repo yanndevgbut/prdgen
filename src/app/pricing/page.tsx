@@ -158,13 +158,13 @@ export default function PricingPage() {
                   <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span>5 Dokumen PRD per bulan</span>
+                  <span>10 Kredit PRD per 24 jam (Reset harian)</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span>Tanya jawab AI standar</span>
+                  <span>Tanya jawab AI spesifik</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -176,7 +176,7 @@ export default function PricingPage() {
                   <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span>3x revisi per dokumen</span>
+                  <span>Revisi PRD (1 kredit per revisi)</span>
                 </li>
               </ul>
             </div>
@@ -316,7 +316,7 @@ export default function PricingPage() {
             <div className="p-4 bg-bg-surface border border-border rounded-lg">
               <div className="font-semibold text-white mb-1">Bisa coba gratis dulu?</div>
               <p className="text-muted">
-                Bisa. Begitu daftar akun, kamu langsung dapat kuota gratis 3 PRD untuk mencoba seluruh fitur generator AI.
+                Bisa. Begitu daftar akun, kamu langsung dapat 3 kredit PRD gratis yang di-reset otomatis setiap 24 jam untuk mencoba seluruh fitur generator AI.
               </p>
             </div>
             <div className="p-4 bg-bg-surface border border-border rounded-lg">

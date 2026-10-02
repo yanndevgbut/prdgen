@@ -41,7 +41,7 @@ const faqJsonLd = {
       name: "Apakah PrdGen bisa dipakai gratis?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Bisa. Setiap akun baru mendapat kuota gratis untuk mencoba fitur generator PRD AI sebelum memilih paket berbayar.",
+        text: "Bisa. Setiap akun baru mendapat 3 kredit PRD gratis yang di-reset otomatis setiap 24 jam untuk mencoba seluruh fitur generator PRD AI sebelum memilih paket berbayar.",
       },
     },
   ],
