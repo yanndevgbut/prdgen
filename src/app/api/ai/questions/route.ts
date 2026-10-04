@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     // Rate Limiting: Maks 10 request per menit per user/IP
     const ip = getClientIp(req);
     const identifier = user.id || ip;
-    const rateLimit = checkRateLimit(identifier, "ai_questions", 10, 60);
+    const rateLimit = await checkRateLimit(identifier, "ai_questions", 10, 60);
 
     if (!rateLimit.allowed) {
       return NextResponse.json(

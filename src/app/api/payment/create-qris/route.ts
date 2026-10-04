@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = getClientIp(req);
-    const rateLimit = checkRateLimit(user.id || ip, "create_qris", 6, 60);
+    const rateLimit = await checkRateLimit(user.id || ip, "create_qris", 6, 60);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: `Terlalu banyak permintaan transaksi. Silakan tunggu ${rateLimit.resetSeconds} detik.` },

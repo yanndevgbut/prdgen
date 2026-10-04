@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const ip = getClientIp(req);
 
     // Rate limiting: maksimal 5 percobaan masuk per 5 menit per IP
-    const rateLimit = checkRateLimit(ip, "auth_login", 5, 5 * 60);
+    const rateLimit = await checkRateLimit(ip, "auth_login", 5, 5 * 60);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {

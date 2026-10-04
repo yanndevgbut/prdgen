@@ -8,15 +8,6 @@ export async function POST(req: NextRequest) {
 
     // 1. Verifikasi Webhook Secret dari Header X-Secret (jika dikonfigurasi)
     const incomingSecret = req.headers.get("x-secret");
-    const secretConfigured = Boolean(config.webhookSecret);
-    const secretMatches = !secretConfigured || incomingSecret === config.webhookSecret;
-
-    console.log("[webhook] diterima:", {
-      slug: config.slug,
-      secretConfigured,
-      secretMatches,
-      incomingSecretPresent: Boolean(incomingSecret),
-    });
 
     if (config.webhookSecret && incomingSecret !== config.webhookSecret) {
       console.warn("Pakasir Webhook unauthorized secret:", incomingSecret);
@@ -24,8 +15,6 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    console.log("[webhook] body mentah:", JSON.stringify(body));
-
     const { txn_id, order_id, status, completed_at, amount, is_sandbox } = body;
 
     if (!order_id) {
@@ -61,7 +50,6 @@ export async function POST(req: NextRequest) {
 
     // 3. Jika status adalah completed, perbarui transaksi & upgrade paket user
     if (status === "completed") {
-      console.log("[webhook] completed diterima:", { order_id, txn_id, amount, completed_at });
       // Update status transaksi
       await adminSupabase
         .from("transactions")

@@ -46,6 +46,11 @@ export async function PATCH(req: NextRequest) {
   const { id, status, plan, role } = await req.json();
   if (!id) return NextResponse.json({ error: "User ID required" }, { status: 400 });
 
+  // Validasi role: hanya boleh "user" atau "admin"
+  if (role !== undefined && role !== "user" && role !== "admin") {
+    return NextResponse.json({ error: "Role tidak valid. Hanya 'user' atau 'admin' yang diizinkan." }, { status: 400 });
+  }
+
   // Proteksi akun admin: periksa data target user
   const { data: targetProfile } = await auth.adminClient
     .from("profiles")
@@ -75,6 +80,20 @@ export async function PATCH(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Audit log detail untuk perubahan role
+  if (role && targetProfile?.role !== role) {
+    await auth.adminClient.from("activity_logs").insert({
+      user_id: auth.userId,
+      action: "ADMIN_CHANGE_ROLE",
+      details: {
+        target_user_id: id,
+        old_role: targetProfile?.role || "unknown",
+        new_role: role,
+        changed_by: auth.userId,
+      },
+    });
+  }
 
   await auth.adminClient.from("activity_logs").insert({
     user_id: auth.userId,

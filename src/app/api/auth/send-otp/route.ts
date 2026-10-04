@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const ip = getClientIp(req);
 
     // 1. Rate Limiting: Maksimal 4 permintaan OTP per 10 menit per IP
-    const rateLimit = checkRateLimit(ip, "send_otp", 4, 10 * 60);
+    const rateLimit = await checkRateLimit(ip, "send_otp", 4, 10 * 60);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {
@@ -97,6 +97,15 @@ export async function POST(req: NextRequest) {
     // Enkripsi password sebelum disimpan (tidak pernah plaintext di DB)
     const encryptedPassword = encryptSecret(password);
 
+
+    // Simpan user_id jika user sudah ada di auth.users (untuk verify-otp tanpa listUsers)
+    let existingUserId: string | null = null;
+    try {
+      const { data: userList } = await adminSupabase.auth.admin.listUsers();
+      existingUserId = userList?.users?.find((u) => u.email?.toLowerCase() === cleanEmail)?.id || null;
+    } catch (err) {
+      console.warn("Gagal cek user di auth:", err);
+    }
     const { error: insertError } = await adminSupabase.from("email_otps").insert({
       email: cleanEmail,
       otp_code: otpCode,
@@ -105,6 +114,7 @@ export async function POST(req: NextRequest) {
       plan: plan,
       attempts: 0,
       expires_at: expiresAt,
+      user_id: existingUserId,
     });
 
     if (insertError) {

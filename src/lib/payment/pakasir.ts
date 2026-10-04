@@ -58,7 +58,7 @@ export async function getDynamicPakasirConfig(): Promise<PakasirConfig> {
       if (val.base_url) baseUrl = val.base_url;
     }
   } catch (err) {
-    console.warn("Menggunakan fallback Pakasir config dari environment variables:", err);
+    // Jangan log konfigurasi sensitif ke console server
   }
 
   return { slug, apiKey, webhookSecret, baseUrl };

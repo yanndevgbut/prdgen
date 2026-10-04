@@ -1,14 +1,45 @@
 import { NextRequest } from "next/server";
 
+/**
+ * Rate Limiting dengan dukungan Redis (Upstash) dan fallback in-memory.
+ *
+ * Di production, gunakan Redis via UPSTASH_REDIS_REST_URL & UPSTASH_REDIS_REST_TOKEN.
+ * Di development/lokal, fallback ke in-memory Map.
+ */
+
+// --- Redis Client (lazy init) ---
+let redisClient: any = null;
+
+async function getRedisClient() {
+  if (redisClient) return redisClient;
+
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!url || !token) {
+    return null; // Fallback ke in-memory
+  }
+
+  try {
+    // Dynamic import agar tidak error di development tanpa Redis
+    // Gunakan require agar tidak perlu type declaration
+    const { Redis } = require("@upstash/redis");
+    redisClient = new Redis({ url, token });
+    return redisClient;
+  } catch (err) {
+    console.warn("Gagal inisialisasi Redis, fallback ke in-memory:", err);
+    return null;
+  }
+}
+
+// --- In-Memory Fallback ---
 interface RateLimitRecord {
   count: number;
   resetAt: number;
 }
 
-// In-memory sliding window cache
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
-// Cleanup expired records every 5 minutes
 if (typeof setInterval !== "undefined") {
   setInterval(() => {
     const now = Date.now();
@@ -52,16 +83,50 @@ export interface RateLimitResult {
  * @param limit Batas maksimal request dalam jendela waktu
  * @param windowSeconds Jendela waktu dalam detik
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   identifier: string,
   action: string,
   limit: number,
   windowSeconds: number
-): RateLimitResult {
-  const key = `${action}:${identifier}`;
+): Promise<RateLimitResult> {
+  const redis = await getRedisClient();
+  const key = `ratelimit:${action}:${identifier}`;
   const now = Date.now();
   const windowMs = windowSeconds * 1000;
 
+  // Gunakan Redis jika tersedia (production)
+  if (redis) {
+    try {
+      const result = await redis.incr(key);
+      if (result === 1) {
+        // Set TTL untuk window pertama kali
+        await redis.pexpire(key, windowMs);
+      }
+
+      if (result > limit) {
+        // Ambil TTL untuk hitung sisa waktu
+        const ttl = await redis.pttl(key);
+        return {
+          allowed: false,
+          limit,
+          remaining: 0,
+          resetSeconds: Math.ceil(ttl / 1000) > 0 ? Math.ceil(ttl / 1000) : 1,
+        };
+      }
+
+      return {
+        allowed: true,
+        limit,
+        remaining: limit - result,
+        resetSeconds: windowSeconds,
+      };
+    } catch (err) {
+      console.warn("Redis rate limit error, fallback ke in-memory:", err);
+      // Fallback ke in-memory di bawah
+    }
+  }
+
+  // In-Memory Fallback
   const existing = rateLimitStore.get(key);
 
   if (!existing || now > existing.resetAt) {

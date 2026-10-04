@@ -183,13 +183,30 @@ export async function consumeCredits(
   const newCredits = Math.max(0, status.credits - cost);
   const supabase = createAdminClient();
 
-  await supabase
+  // Atomic decrement: hanya update jika credits >= cost (mencegah race condition)
+  const { data: updated, error: updateError } = await supabase
     .from("profiles")
     .update({
       credits: newCredits,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", userId);
+    .eq("id", userId)
+    .gte("credits", cost)
+    .select("credits")
+    .single();
+
+  if (updateError || !updated) {
+    // Row tidak terupdate = kredit habis (race condition atau memang habis)
+    const errorMsg = `Kredit harian (${status.plan.toUpperCase()}) kamu habis. Kredit akan di-reset otomatis dalam ${status.timeRemainingText}, atau upgrade ke paket VIP untuk akses tanpa batas.`;
+    return {
+      success: false,
+      error: errorMsg,
+      isUnlimited: false,
+      remainingCredits: status.credits,
+      maxCredits: status.maxCredits,
+      resetAt: status.resetAt,
+    };
+  }
 
   return {
     success: true,

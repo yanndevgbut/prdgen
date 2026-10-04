@@ -145,10 +145,15 @@ CREATE TABLE IF NOT EXISTS public.email_otps (
     plan subscription_plan NOT NULL DEFAULT 'trial',
     attempts INTEGER NOT NULL DEFAULT 0,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_email_otps_email ON public.email_otps(email);
+
+-- Migrasi aman untuk instalasi lama
+ALTER TABLE public.email_otps
+    ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 
 CREATE TABLE IF NOT EXISTS public.password_reset_otps (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -156,10 +161,15 @@ CREATE TABLE IF NOT EXISTS public.password_reset_otps (
     otp_code TEXT NOT NULL,
     attempts INTEGER NOT NULL DEFAULT 0,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    encrypted_new_password TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_password_reset_otps_email ON public.password_reset_otps(email);
+
+-- Migrasi aman untuk instalasi lama
+ALTER TABLE public.password_reset_otps
+    ADD COLUMN IF NOT EXISTS encrypted_new_password TEXT;
 
 CREATE TABLE IF NOT EXISTS public.transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

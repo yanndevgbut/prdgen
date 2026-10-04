@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     // 1. Rate Limiting: Maksimal 5 generate request per menit per user/IP
     const ip = getClientIp(req);
     const identifier = user.id || ip;
-    const rateLimit = checkRateLimit(identifier, "ai_generate", 5, 60);
+    const rateLimit = await checkRateLimit(identifier, "ai_generate", 5, 60);
 
     if (!rateLimit.allowed) {
       return NextResponse.json(

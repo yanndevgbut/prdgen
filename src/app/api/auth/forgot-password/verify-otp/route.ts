@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
+import { decryptSecret } from "@/lib/security/crypto";
 import { z } from "zod";
 
 const verifyResetOtpSchema = z.object({
   email: z.string().email("Format email tidak valid"),
   otpCode: z.string().length(6, "Kode OTP harus 6 digit angka"),
-  newPassword: z.string().min(6, "Kata sandi baru minimal 6 karakter"),
 });
 
 export async function POST(req: NextRequest) {
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const ip = getClientIp(req);
 
     // 1. Rate Limiting per IP (Maks 10 percobaan per 5 menit)
-    const rateLimit = checkRateLimit(ip, "verify_reset_otp", 10, 5 * 60);
+    const rateLimit = await checkRateLimit(ip, "verify_reset_otp", 10, 5 * 60);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, otpCode, newPassword } = validation.data;
+    const { email, otpCode } = validation.data;
     const cleanEmail = email.trim().toLowerCase();
     const cleanOtp = otpCode.trim();
     const adminSupabase = createAdminClient();
@@ -84,13 +84,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 6. OTP Valid: Cari userId di auth.users dan update kata sandi
-    const { data: userList } = await adminSupabase.auth.admin.listUsers();
-    const userToUpdate = userList?.users?.find(
-      (u) => u.email?.toLowerCase() === cleanEmail
-    );
+    // 6. OTP Valid: Dekripsi password baru lalu update
+    if (!record.encrypted_new_password) {
+      return NextResponse.json(
+        { error: "Password baru tidak ditemukan. Silakan minta kode reset baru." },
+        { status: 400 }
+      );
+    }
 
-    if (!userToUpdate) {
+    let newPassword: string;
+    try {
+      newPassword = decryptSecret(record.encrypted_new_password)
+    } catch (decryptErr: any) {
+      console.error("Gagal mendekripsi password reset:", decryptErr?.message);
+      return NextResponse.json(
+        { error: "Gagal memproses reset kata sandi. Silakan minta kode baru." },
+        { status: 500 }
+      );
+    }
+
+    // Cari userId di auth.users (via profiles untuk menghindari listUsers)
+    const { data: profile } = await adminSupabase
+      .from("profiles")
+      .select("id")
+      .eq("email", cleanEmail)
+      .maybeSingle();
+
+    if (!profile) {
       return NextResponse.json(
         { error: "Akun pengguna tidak ditemukan di auth server." },
         { status: 404 }
@@ -98,7 +118,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { error: updateAuthErr } = await adminSupabase.auth.admin.updateUserById(
-      userToUpdate.id,
+      profile.id,
       {
         password: newPassword,
         email_confirm: true,
@@ -114,7 +134,7 @@ export async function POST(req: NextRequest) {
 
     // 8. Catat activity log
     await adminSupabase.from("activity_logs").insert({
-      user_id: userToUpdate.id,
+      user_id: profile.id,
       action: "PASSWORD_RESET_COMPLETED",
       details: {
         email: cleanEmail,

@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const ip = getClientIp(req);
 
     // 1. Rate Limiting per IP (Maks 10 percobaan verifikasi per 5 menit)
-    const rateLimit = checkRateLimit(ip, "verify_otp", 10, 5 * 60);
+    const rateLimit = await checkRateLimit(ip, "verify_otp", 10, 5 * 60);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     let createdUser = null;
     let decryptedPassword: string;
     try {
-      decryptedPassword = decryptSecret(record.password_hash);
+      decryptedPassword = decryptSecret(record.password_hash)
     } catch (decryptErr: any) {
       console.error("Gagal mendekripsi password OTP:", decryptErr?.message);
       return NextResponse.json(
@@ -98,61 +98,49 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
-      email: cleanEmail,
-      password: decryptedPassword,
-      email_confirm: true, // Akun langsung terverifikasi
-      user_metadata: {
-        full_name: record.full_name,
-        plan: record.plan,
-      },
-    });
+    // Gunakan user_id dari record email_otps (tidak perlu listUsers lagi)
+    if (record.user_id) {
+      // User sudah ada di auth.users, update saja
+      const { data: updatedAuth, error: updateAuthErr } =
+        await adminSupabase.auth.admin.updateUserById(record.user_id, {
+          password: decryptedPassword,
+          email_confirm: true,
+          user_metadata: {
+            full_name: record.full_name,
+            plan: record.plan,
+          },
+        });
 
-    if (authError) {
-      // Jika user sudah terlanjur ada di auth.users dari percobaan sebelumnya, update status & password
-      if (
-        authError.message?.toLowerCase().includes("already registered") ||
-        authError.message?.toLowerCase().includes("unique") ||
-        authError.message?.toLowerCase().includes("already exists")
-      ) {
-        const { data: userList } = await adminSupabase.auth.admin.listUsers();
-        const existingUser = userList?.users?.find(
-          (u) => u.email?.toLowerCase() === cleanEmail
-        );
+      if (updateAuthErr) {
+        throw updateAuthErr;
+      }
+      createdUser = updatedAuth.user;
 
-        if (existingUser) {
-          const { data: updatedAuth, error: updateAuthErr } =
-            await adminSupabase.auth.admin.updateUserById(existingUser.id, {
-              password: decryptedPassword,
-              email_confirm: true,
-              user_metadata: {
-                full_name: record.full_name,
-                plan: record.plan,
-              },
-            });
+      // Update juga profiles jika ada
+      await adminSupabase
+        .from("profiles")
+        .update({
+          full_name: record.full_name,
+          plan: record.plan,
+          status: "active",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", record.user_id);
+    } else {
+      // User baru, createUser
+      const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
+        email: cleanEmail,
+        password: decryptedPassword,
+        email_confirm: true,
+        user_metadata: {
+          full_name: record.full_name,
+          plan: record.plan,
+        },
+      });
 
-          if (updateAuthErr) {
-            throw updateAuthErr;
-          }
-          createdUser = updatedAuth.user;
-
-          // Update juga profiles jika ada
-          await adminSupabase
-            .from("profiles")
-            .update({
-              full_name: record.full_name,
-              plan: record.plan,
-              status: "active",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", existingUser.id);
-        } else {
-          throw authError;
-        }
-      } else {
+      if (authError) {
         throw authError;
       }
-    } else {
       createdUser = authData?.user;
     }
 
