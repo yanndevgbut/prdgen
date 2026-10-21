@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Kode verifikasi OTP 6-digit telah dikirimkan ke ${cleanEmail}.`,
+      message: "Jika email belum terdaftar, kode verifikasi akan dikirimkan.",
       devOtp: process.env.NODE_ENV !== "production" ? otpCode : undefined,
     });
   } catch (err: any) {

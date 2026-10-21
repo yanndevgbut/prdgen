@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Cek batas percobaan salah input (Anti-Brute Force)
+    // 3. Cek batas percobaan salah input
     if (record.attempts >= 5) {
       await adminSupabase.from("email_otps").delete().eq("email", cleanEmail);
       return NextResponse.json(
@@ -70,15 +70,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Validasi kesesuaian kode OTP
-    if (record.otp_code !== cleanOtp) {
-      // Tambah counter attempts
-      await adminSupabase
-        .from("email_otps")
-        .update({ attempts: record.attempts + 1 })
-        .eq("id", record.id);
+    // 5. Klaim satu percobaan secara atomik SEBELUM membandingkan kode.
+    // Ini mencegah banyak request paralel sama-sama lolos dari batas 5 percobaan.
+    const nextAttempts = record.attempts + 1;
+    const { data: claimed, error: claimError } = await adminSupabase
+      .from("email_otps")
+      .update({ attempts: nextAttempts })
+      .eq("id", record.id)
+      .eq("attempts", record.attempts)
+      .select("id")
+      .maybeSingle();
 
-      const sisaPercobaan = 5 - (record.attempts + 1);
+    if (claimError) {
+      console.error("Gagal mengklaim percobaan OTP:", claimError);
+      return NextResponse.json(
+        { error: "Gagal memproses kode verifikasi. Silakan coba lagi." },
+        { status: 500 }
+      );
+    }
+
+    if (!claimed) {
+      return NextResponse.json(
+        { error: "Batas percobaan kode OTP terlampaui (maksimal 5 kali). Silakan minta kode baru." },
+        { status: 400 }
+      );
+    }
+
+    // 6. Validasi kesesuaian kode OTP
+    if (record.otp_code !== cleanOtp) {
+      const sisaPercobaan = Math.max(0, 5 - nextAttempts);
       return NextResponse.json(
         { error: `Kode OTP salah. Sisa percobaan: ${sisaPercobaan} kali.` },
         { status: 400 }

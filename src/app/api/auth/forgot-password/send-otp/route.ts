@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Kode OTP 6-digit untuk reset kata sandi telah dikirimkan ke ${cleanEmail}.`,
+      message: "Jika email terdaftar, kode reset kata sandi akan dikirimkan.",
       devOtp: process.env.NODE_ENV !== "production" ? otpCode : undefined,
     });
   } catch (err: any) {
