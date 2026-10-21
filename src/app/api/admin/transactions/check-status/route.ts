@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPakasirStatus, getPakasirTransaction } from "@/lib/payment/pakasir";
+import { isTransactionPriceValid } from "@/lib/payment/verify";
 import { activatePlan } from "@/lib/security/plan";
 
 async function verifyAdmin() {
@@ -62,6 +63,15 @@ export async function POST(req: NextRequest) {
           const pakasirStatus = await checkPakasirStatus(trx.txn_id);
 
           if (pakasirStatus.status === "completed") {
+            if (!(await isTransactionPriceValid(trx))) {
+              failed.push({
+                order_id: trx.order_id,
+                reason: "Nominal transaksi tidak cocok dengan harga paket",
+              });
+              await new Promise((r) => setTimeout(r, 4500));
+              continue;
+            }
+
             const expectedAmount = Math.max(
               0,
               Number(trx.amount) - Number(trx.discount_amount || 0)
@@ -228,6 +238,18 @@ export async function POST(req: NextRequest) {
       }
 
       if (pakasirStatus.status === "completed") {
+        if (!(await isTransactionPriceValid(transaction))) {
+          return NextResponse.json(
+            {
+              success: false,
+              status: transaction.status,
+              message:
+                "Nominal transaksi tidak cocok dengan harga paket. Upgrade dibatalkan.",
+            },
+            { status: 409 }
+          );
+        }
+
         const expectedAmount = Math.max(
           0,
           Number(transaction.amount) - Number(transaction.discount_amount || 0)

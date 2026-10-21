@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getDynamicPakasirConfig } from "@/lib/payment/pakasir";
+import { isTransactionPriceValid } from "@/lib/payment/verify";
 import { activatePlan } from "@/lib/security/plan";
 
 export async function POST(req: NextRequest) {
@@ -71,6 +72,19 @@ export async function POST(req: NextRequest) {
 
     // 3. Jika status adalah completed, perbarui transaksi & upgrade paket user
     if (status === "completed") {
+      if (!(await isTransactionPriceValid(transaction))) {
+        console.error("Webhook transaction price mismatch:", {
+          order_id,
+          plan: transaction.plan,
+          billing_cycle: transaction.billing_cycle,
+          amount: transaction.amount,
+        });
+        return NextResponse.json(
+          { error: "Transaction amount does not match plan price" },
+          { status: 400 }
+        );
+      }
+
       // Update status transaksi
       await adminSupabase
         .from("transactions")

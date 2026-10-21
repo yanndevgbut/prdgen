@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPakasirStatus } from "@/lib/payment/pakasir";
+import { isTransactionPriceValid } from "@/lib/payment/verify";
 import { activatePlan } from "@/lib/security/plan";
 
 /**
@@ -162,6 +163,22 @@ export async function GET(req: NextRequest) {
             {
               error:
                 "Data pembayaran tidak cocok dengan transaksi. Silakan hubungi admin.",
+            },
+            { status: 409 }
+          );
+        }
+
+        if (!(await isTransactionPriceValid(transaction))) {
+          console.error("Transaction price mismatch:", {
+            order_id: transaction.order_id,
+            plan: transaction.plan,
+            billing_cycle: transaction.billing_cycle,
+            amount: transaction.amount,
+          });
+          return NextResponse.json(
+            {
+              error:
+                "Nominal transaksi tidak cocok dengan harga paket. Silakan hubungi admin.",
             },
             { status: 409 }
           );

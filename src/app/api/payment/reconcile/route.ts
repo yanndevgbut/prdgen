@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPakasirStatus } from "@/lib/payment/pakasir";
+import { isTransactionPriceValid } from "@/lib/payment/verify";
 import { activatePlan } from "@/lib/security/plan";
 
 /**
@@ -57,6 +58,18 @@ export async function GET(req: NextRequest) {
         const pakasirStatus = await checkPakasirStatus(trx.txn_id);
 
         if (pakasirStatus.status === "completed") {
+          if (!(await isTransactionPriceValid(trx))) {
+            mismatched += 1;
+            console.error("Reconcile transaction price mismatch:", {
+              order_id: trx.order_id,
+              plan: trx.plan,
+              billing_cycle: trx.billing_cycle,
+              amount: trx.amount,
+            });
+            await new Promise((r) => setTimeout(r, 4500));
+            continue;
+          }
+
           const expectedAmount = Math.max(
             0,
             Number(trx.amount) - Number(trx.discount_amount || 0)
