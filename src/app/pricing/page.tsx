@@ -1,347 +1,47 @@
-"use client";
+import { createClient } from "@/lib/supabase/server";
+import {
+  FALLBACK_PRICING_PLANS,
+  type PricingPlans,
+} from "@/lib/pricing";
+import { PricingClient } from "./pricing-client";
 
-import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Footer } from "@/components/footer";
-import { formatRupiah } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
-import { QRISPaymentModal, QRISTransactionData } from "@/components/qris-payment-modal";
+export const dynamic = "force-dynamic";
 
-export default function PricingPage() {
-  const router = useRouter();
-  const supabase = createClient();
+function normalizePricing(value: unknown): PricingPlans {
+  const raw =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+  const pricing = { ...FALLBACK_PRICING_PLANS };
 
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [isYearly, setIsYearly] = useState(false);
-  const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<"basic" | "vip" | "enterprise">("vip");
-
-  // QRIS Modal State
-  const [qrisModalOpen, setQrisModalOpen] = useState(false);
-
-  const [pricing, setPricing] = useState({
-    basic_monthly: 99000,
-    basic_yearly: 79000,
-    vip_monthly: 249000,
-    vip_yearly: 199000,
-    enterprise_monthly: 799000,
-    enterprise_yearly: 639000,
-    yearly_discount_pct: 20,
-  });
-
-  useEffect(() => {
-    async function loadData() {
-      // 1. Check Session & Profile
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-        if (prof) setProfile(prof);
-      }
-
-      // 2. Load Pricing
-      try {
-        const { data } = await supabase
-          .from("system_settings")
-          .select("value")
-          .eq("key", "pricing_plans")
-          .single();
-
-        if (data?.value) {
-          setPricing((prev: typeof pricing) => ({ ...prev, ...(data.value as any) }));
-        }
-      } catch (err) {
-        // Fallback to default
-      }
+  for (const key of Object.keys(pricing) as Array<keyof PricingPlans>) {
+    const candidate = raw[key];
+    if (typeof candidate === "number" && Number.isFinite(candidate)) {
+      pricing[key] = candidate;
     }
+  }
 
-    loadData();
-  }, [supabase]);
+  return pricing;
+}
 
-  const getPlanPrice = (planKey: "basic" | "vip" | "enterprise") => {
-    if (isYearly) {
-      const yearlyVal = (pricing as any)[`${planKey}_yearly`];
-      if (yearlyVal) return Number(yearlyVal);
-      const monthlyVal = Number((pricing as any)[`${planKey}_monthly`]) || 99000;
-      return Math.round(monthlyVal * (1 - pricing.yearly_discount_pct / 100));
+export default async function PricingPage() {
+  let initialPricing = FALLBACK_PRICING_PLANS;
+
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "pricing_plans")
+      .single();
+
+    if (error) throw error;
+    if (data?.value) {
+      initialPricing = normalizePricing(data.value);
     }
-    return Number((pricing as any)[`${planKey}_monthly`]) || 99000;
-  };
+  } catch (error) {
+    console.error("Gagal memuat pricing_plans dari database:", error);
+  }
 
-  const handleOpenCheckout = (planKey: "basic" | "vip" | "enterprise") => {
-    if (!user) {
-      router.push(`/login?redirect=/pricing`);
-      return;
-    }
-    setSelectedPlanForCheckout(planKey);
-    setQrisModalOpen(true);
-  };
-
-  // Stabilkan callback agar interval polling di modal tidak terus di-reset
-  const handlePaymentSuccess = useCallback(() => {
-    setProfile((prev: any) =>
-      prev ? { ...prev, plan: selectedPlanForCheckout } : prev
-    );
-  }, [selectedPlanForCheckout]);
-
-  return (
-    <div className="flex-1 flex flex-col animate-page-enter">
-      
-      {/* QRIS PAYMENT & CHECKOUT MODAL */}
-      <QRISPaymentModal
-        isOpen={qrisModalOpen}
-        onClose={() => setQrisModalOpen(false)}
-        selectedPlan={selectedPlanForCheckout}
-        billingCycle={isYearly ? "yearly" : "monthly"}
-        basePrice={getPlanPrice(selectedPlanForCheckout)}
-        userEmail={user?.email || ""}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
-
-      {/* HEADER */}
-      <section className="pt-16 pb-12 px-4 md:px-8 text-center max-w-2xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-3">
-          Pilih paket sesuai kebutuhanmu
-        </h1>
-        <p className="text-sm md:text-base text-muted mb-8">
-          Semua paket sudah termasuk AI generator PRD otomatis & ekspor dokumen siap pakai.
-        </p>
-
-        {/* Toggle Switch */}
-        <div className="inline-flex items-center p-1 bg-bg-surface border border-border rounded-lg">
-          <button
-            type="button"
-            onClick={() => setIsYearly(false)}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-              !isYearly ? "bg-primary text-white" : "text-muted hover:text-white"
-            }`}
-          >
-            Bulanan
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsYearly(true)}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-              isYearly ? "bg-primary text-white" : "text-muted hover:text-white"
-            }`}
-          >
-            Tahunan <span className="text-emerald-400 ml-1 font-bold">(Hemat {pricing.yearly_discount_pct}%)</span>
-          </button>
-        </div>
-      </section>
-
-      {/* PRICING CARDS */}
-      <section className="px-4 md:px-8 pb-20 max-w-[1040px] mx-auto w-full">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
-          
-          {/* BASIC TIER */}
-          <div className="bg-bg-surface border border-border rounded-xl p-6 flex flex-col justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-white mb-1">Basic</h3>
-              <p className="text-xs text-muted mb-5 min-h-[34px]">
-                Pas buat yang baru mulai atau bikin 1-2 proyek sampingan.
-              </p>
-              <div className="flex items-baseline gap-1 pb-5 mb-5 border-b border-border">
-                <span className="text-xs text-dim">Rp</span>
-                <span className="text-3xl font-extrabold text-white">
-                  {formatRupiah(getPlanPrice("basic"))}
-                </span>
-                <span className="text-xs text-dim">/ bln</span>
-              </div>
-              <ul className="space-y-2.5 text-xs text-muted mb-8">
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>10 Kredit PRD per 24 jam (Reset harian)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Tanya jawab AI spesifik</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Ekspor Markdown (.md)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Revisi PRD (1 kredit per revisi)</span>
-                </li>
-              </ul>
-            </div>
-            <button
-              onClick={() => handleOpenCheckout("basic")}
-              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
-            >
-              {profile?.plan === "basic" ? "Paket Saat Ini" : "Pilih Basic (QRIS)"}
-            </button>
-          </div>
-
-          {/* VIP TIER (HIGHLIGHT) */}
-          <div className="bg-[#1A1A1C] border border-primary-light/50 rounded-xl p-6 flex flex-col justify-between relative">
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <h3 className="text-lg font-bold text-white">VIP</h3>
-                <span className="text-[11px] bg-primary/20 text-primary-light font-semibold px-2 py-0.5 rounded-full">
-                  Paling Populer
-                </span>
-              </div>
-              <p className="text-xs text-muted mb-5 min-h-[34px]">
-                Pilihan utama Product Manager, Freelancer, dan Tech Lead.
-              </p>
-              <div className="flex items-baseline gap-1 pb-5 mb-5 border-b border-border">
-                <span className="text-xs text-dim">Rp</span>
-                <span className="text-3xl font-extrabold text-white">
-                  {formatRupiah(getPlanPrice("vip"))}
-                </span>
-                <span className="text-xs text-dim">/ bln</span>
-              </div>
-              <ul className="space-y-2.5 text-xs text-muted mb-8">
-                <li className="flex items-center gap-2 text-white font-medium">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Unlimited PRD (tanpa batas)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>AI analisa teknis mendalam</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Ekspor .MD & Cetak PDF</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Revisi AI tanpa batasan</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Task breakdown otomatis</span>
-                </li>
-              </ul>
-            </div>
-            <button
-              onClick={() => handleOpenCheckout("vip")}
-              className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
-            >
-              {profile?.plan === "vip" ? "Paket Saat Ini" : "Bayar VIP dengan QRIS"}
-            </button>
-          </div>
-
-          {/* ENTERPRISE TIER */}
-          <div className="bg-bg-surface border border-border rounded-xl p-6 flex flex-col justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-white mb-1">Enterprise</h3>
-              <p className="text-xs text-muted mb-5 min-h-[34px]">
-                Untuk software house, agensi, dan tim product skala besar.
-              </p>
-              <div className="flex items-baseline gap-1 pb-5 mb-5 border-b border-border">
-                <span className="text-xs text-dim">Rp</span>
-                <span className="text-3xl font-extrabold text-white">
-                  {formatRupiah(getPlanPrice("enterprise"))}
-                </span>
-                <span className="text-xs text-dim">/ bln</span>
-              </div>
-              <ul className="space-y-2.5 text-xs text-muted mb-8">
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Semua keunggulan paket VIP</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Kolaborasi tim & multi-user</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Custom template PRD tim</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Prioritas kecepatan generate tertinggi</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Dukungan teknis prioritas 24/7</span>
-                </li>
-              </ul>
-            </div>
-            <button
-              onClick={() => handleOpenCheckout("enterprise")}
-              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
-            >
-              {profile?.plan === "enterprise" ? "Paket Saat Ini" : "Pilih Enterprise (QRIS)"}
-            </button>
-          </div>
-
-        </div>
-      </section>
-
-      {/* FAQ SECTION */}
-      <section className="py-16 px-4 md:px-8 border-t border-border bg-[#121213]">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-xl md:text-2xl font-bold text-white text-center mb-8">
-            Pertanyaan Umum
-          </h2>
-          <div className="space-y-4 text-xs md:text-sm">
-            <div className="p-4 bg-bg-surface border border-border rounded-lg">
-              <div className="font-semibold text-white mb-1">Bisa coba gratis dulu?</div>
-              <p className="text-muted">
-                Bisa. Begitu daftar akun, kamu langsung dapat 3 kredit PRD gratis yang di-reset otomatis setiap 24 jam untuk mencoba seluruh fitur generator AI.
-              </p>
-            </div>
-            <div className="p-4 bg-bg-surface border border-border rounded-lg">
-              <div className="font-semibold text-white mb-1">Pembayarannya lewat apa saja?</div>
-              <p className="text-muted">
-                Kami mendukung pembayaran instan melalui QRIS yang dapat di-scan dari aplikasi BCA, Mandiri, BNI, BRI, GoPay, OVO, ShopeePay, dan DANA.
-              </p>
-            </div>
-            <div className="p-4 bg-bg-surface border border-border rounded-lg">
-              <div className="font-semibold text-white mb-1">Bisa cancel langganan kapan saja?</div>
-              <p className="text-muted">
-                Bisa banget. Tidak ada kontrak mengikat, kamu bisa mengubah atau menghentikan paket kapan pun.
-              </p>
-            </div>
-            <div className="p-4 bg-bg-surface border border-border rounded-lg">
-              <div className="font-semibold text-white mb-1">Apakah ide produk saya aman dan terjaga?</div>
-              <p className="text-muted">
-                Sangat aman. Setiap input deskripsi produk dan hasil dokumen PRD dienkripsi dan hanya dapat diakses oleh akun pemiliknya.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <Footer />
-    </div>
-  );
+  return <PricingClient initialPricing={initialPricing} />;
 }
