@@ -4,6 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateDynamicQuestions } from "@/lib/ai/9router";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
 import { checkAndRefreshCredits } from "@/lib/security/credits";
+import { getEffectivePlan } from "@/lib/plan";
+import { resolveModelForPlan } from "@/lib/ai/model-access";
 import { z } from "zod";
 
 const questionRequestSchema = z.object({
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
     const validation = questionRequestSchema.safeParse(body);
 
     if (!validation.success) {
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
     const adminSupabase = createAdminClient();
     const { data: profile } = await adminSupabase
       .from("profiles")
-      .select("status")
+      .select("status, plan, plan_expires_at")
       .eq("id", user.id)
       .single();
 
@@ -63,6 +65,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Akun Anda telah dinonaktifkan oleh administrator." },
         { status: 403 }
+      );
+    }
+
+    const effectivePlan = getEffectivePlan(profile?.plan, profile?.plan_expires_at);
+
+    // Tanya jawab gratis, tetapi tetap dibatasi per hari untuk mencegah
+    // penyalahgunaan biaya AI oleh akun trial.
+    const dailyLimit = await checkRateLimit(
+      user.id,
+      "ai_questions_daily",
+      30,
+      24 * 60 * 60
+    );
+    if (!dailyLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: `Batas pertanyaan AI harian tercapai. Coba lagi dalam ${Math.ceil(
+            dailyLimit.resetSeconds / 3600
+          )} jam.`,
+        },
+        { status: 429 }
       );
     }
 
@@ -77,10 +100,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const modelResolution = await resolveModelForPlan(effectivePlan);
+    if (!modelResolution.model) {
+      return NextResponse.json(
+        { error: modelResolution.error || "Model AI tidak tersedia." },
+        { status: modelResolution.status || 403 }
+      );
+    }
+
     // Generate tailored questions via 9router AI
     const questions = await generateDynamicQuestions({
       title,
       description,
+      modelOverride: modelResolution.model.model_id,
     });
 
     return NextResponse.json({

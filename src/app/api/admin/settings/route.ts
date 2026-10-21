@@ -2,6 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+const SECRET_FIELDS: Record<string, string[]> = {
+  ai_config: ["api_key"],
+  pakasir_config: ["api_key", "webhook_secret"],
+};
+
+function maskSetting(setting: any) {
+  const fields = SECRET_FIELDS[setting?.key];
+  if (!fields || !setting?.value || typeof setting.value !== "object") {
+    return setting;
+  }
+
+  const value = { ...setting.value };
+  for (const field of fields) {
+    if (value[field]) {
+      value[field] = "";
+      value[`${field}_set`] = true;
+    }
+  }
+
+  return { ...setting, value };
+}
+
 export async function GET() {
   try {
     const supabase = createClient();
@@ -26,7 +48,9 @@ export async function GET() {
 
     const { data: settings } = await adminClient.from("system_settings").select("*");
 
-    return NextResponse.json({ settings: settings || [] });
+    return NextResponse.json({
+      settings: (settings || []).map((setting) => maskSetting(setting)),
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -54,16 +78,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
     }
 
-    const { key, value } = await req.json();
+    const { key, value } = await req.json().catch(() => ({} as any));
     if (!key || value === undefined) {
       return NextResponse.json({ error: "Key and value required" }, { status: 400 });
+    }
+
+    // Field rahasia tidak pernah dikirim ke browser. Saat admin menyimpan
+    // form dengan field rahasia kosong, pertahankan nilai lama di database.
+    let nextValue = value;
+    const secretFields = SECRET_FIELDS[key] || [];
+    if (secretFields.length > 0 && value && typeof value === "object") {
+      const { data: existing } = await adminClient
+        .from("system_settings")
+        .select("value")
+        .eq("key", key)
+        .maybeSingle();
+
+      const existingValue =
+        existing?.value && typeof existing.value === "object"
+          ? (existing.value as Record<string, any>)
+          : {};
+      const incomingValue = value as Record<string, any>;
+
+      nextValue = { ...existingValue, ...incomingValue };
+      for (const field of secretFields) {
+        if (!incomingValue[field] && existingValue[field]) {
+          nextValue[field] = existingValue[field];
+        }
+        // Jangan simpan metadata UI ke database.
+        delete (nextValue as Record<string, any>)[`${field}_set`];
+      }
     }
 
     const { data, error } = await adminClient
       .from("system_settings")
       .upsert({
         key,
-        value,
+        value: nextValue,
         updated_at: new Date().toISOString(),
       })
       .select()
@@ -78,7 +129,7 @@ export async function POST(req: NextRequest) {
       details: { key },
     });
 
-    return NextResponse.json({ success: true, setting: data });
+    return NextResponse.json({ success: true, setting: maskSetting(data) });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

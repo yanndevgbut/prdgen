@@ -43,7 +43,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const { id, status, plan, role } = await req.json();
+  const { id, status, plan, role } = await req.json().catch(() => ({} as any));
   if (!id) return NextResponse.json({ error: "User ID required" }, { status: 400 });
 
   // Validasi role: hanya boleh "user" atau "admin"
@@ -133,7 +133,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const { id } = await req.json();
+  const { id } = await req.json().catch(() => ({} as any));
   if (!id) return NextResponse.json({ error: "User ID required" }, { status: 400 });
 
   // Proteksi akun admin: periksa data target user

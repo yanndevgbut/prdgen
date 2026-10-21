@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const body = await req.json();
+  const body = (await req.json().catch(() => null)) ?? {};
   const { action } = body;
 
   if (action === "create") {

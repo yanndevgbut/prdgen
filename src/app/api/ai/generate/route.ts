@@ -5,6 +5,7 @@ import { generatePRDFromAI } from "@/lib/ai/9router";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
 import { consumeCredits } from "@/lib/security/credits";
 import { getEffectivePlan } from "@/lib/plan";
+import { resolveModelForPlan } from "@/lib/ai/model-access";
 import { z } from "zod";
 
 const generateSchema = z.object({
@@ -19,13 +20,6 @@ const generateSchema = z.object({
   hosting: z.string().max(1000).optional(),
   thirdParty: z.string().max(1000).optional(),
 });
-
-const TIER_LEVELS: Record<string, number> = {
-  trial: 1,
-  basic: 2,
-  vip: 3,
-  enterprise: 4,
-};
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,7 +49,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
     const validation = generateSchema.safeParse(body);
 
     if (!validation.success) {
@@ -95,35 +89,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Validasi Model Tier Lock (Server-side Role Protection)
-    if (modelOverride) {
-      const { data: modelData } = await adminSupabase
-        .from("ai_models")
-        .select("name, min_tier")
-        .eq("model_id", modelOverride)
-        .eq("is_active", true)
-        .single();
-
-      // Wajib terdaftar & aktif; tolak bila tidak dikenal (cegah bypass tier)
-      if (!modelData) {
-        return NextResponse.json(
-          { error: "Model AI yang diminta tidak ditemukan atau tidak aktif." },
-          { status: 403 }
-        );
-      }
-
-      const userPlanLevel = TIER_LEVELS[effectivePlan] || 1;
-      const requiredLevel = TIER_LEVELS[modelData.min_tier?.toLowerCase() || "basic"] || 1;
-
-      if (userPlanLevel < requiredLevel) {
-        return NextResponse.json(
-          {
-            error: `Model AI "${modelData.name}" membutuhkan paket ${modelData.min_tier.toUpperCase()} ke atas. Silakan upgrade paket Anda untuk menggunakan model ini.`,
-          },
-          { status: 403 }
-        );
-      }
+    // 3. Validasi model (termasuk model default) terhadap paket user.
+    const modelResolution = await resolveModelForPlan(effectivePlan, modelOverride);
+    if (!modelResolution.model) {
+      return NextResponse.json(
+        { error: modelResolution.error || "Model AI tidak tersedia." },
+        { status: modelResolution.status || 403 }
+      );
     }
+    const resolvedModelId = modelResolution.model.model_id;
 
     // 4. Cek & Konsumsi Kredit Harian (Reset Rolling 24 Jam)
     const creditResult = await consumeCredits(user.id, 1);
@@ -144,7 +118,7 @@ export async function POST(req: NextRequest) {
       techStack,
       hosting,
       thirdParty,
-      modelOverride,
+      modelOverride: resolvedModelId,
     });
 
     // 6. Simpan ke database Supabase

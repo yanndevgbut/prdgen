@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
     const validation = loginSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(

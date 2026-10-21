@@ -38,8 +38,8 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // 1. Protect /app routes (Requires logged in user)
-  if (pathname.startsWith("/app") && !user) {
+  // 1. Protect /app dan /admin routes (Requires logged in user)
+  if ((pathname.startsWith("/app") || pathname.startsWith("/admin")) && !user) {
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(redirectUrl);

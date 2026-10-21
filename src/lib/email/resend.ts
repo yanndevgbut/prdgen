@@ -2,6 +2,25 @@ import { Resend } from "resend";
 
 let resendClient: Resend | null = null;
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return char;
+    }
+  });
+}
+
 export function getResendClient(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -43,7 +62,7 @@ export function renderOTPEmailHtml(params: {
             <td style="padding-top:28px;">
               <h1 style="font-size:20px; font-weight:700; color:#ffffff; margin:0 0 12px 0; letter-spacing:-0.3px;">Verifikasi Akun Anda</h1>
               <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin:0 0 8px 0;">
-                Halo ${params.fullName || "Pengguna"},
+                Halo ${escapeHtml(params.fullName || "Pengguna")},
               </p>
               <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin:0 0 28px 0;">
                 Gunakan kode verifikasi (OTP) berikut untuk menyelesaikan proses pendaftaran akun Anda di platform PRDGen:
@@ -167,7 +186,7 @@ export function renderResetPasswordEmailHtml(params: {
             <td style="padding-top:28px;">
               <h1 style="font-size:20px; font-weight:700; color:#ffffff; margin:0 0 12px 0; letter-spacing:-0.3px;">Reset Kata Sandi Akun</h1>
               <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin:0 0 8px 0;">
-                Halo ${params.fullName || "Pengguna"},
+                Halo ${escapeHtml(params.fullName || "Pengguna")},
               </p>
               <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin:0 0 28px 0;">
                 Kami menerima permintaan untuk mengatur ulang kata sandi akun PRDGen Anda. Gunakan kode OTP 6-digit berikut:

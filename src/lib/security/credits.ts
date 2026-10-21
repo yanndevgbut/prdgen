@@ -196,39 +196,74 @@ export async function consumeCredits(
     };
   }
 
-  const newCredits = Math.max(0, status.credits - cost);
   const supabase = createAdminClient();
 
-  // Atomic decrement: hanya update jika credits >= cost (mencegah race condition)
-  const { data: updated, error: updateError } = await supabase
-    .from("profiles")
-    .update({
-      credits: newCredits,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", userId)
-    .gte("credits", cost)
-    .select("credits")
-    .single();
+  // Compare-and-swap: update hanya jika nilai credits masih sama dengan yang
+  // dibaca. Dua request paralel tidak bisa sama-sama memakai kredit yang sama.
+  let currentStatus = status;
 
-  if (updateError || !updated) {
-    // Row tidak terupdate = kredit habis (race condition atau memang habis)
-    const errorMsg = `Kredit harian (${status.plan.toUpperCase()}) kamu habis. Kredit akan di-reset otomatis dalam ${status.timeRemainingText}, atau upgrade ke paket VIP untuk akses tanpa batas.`;
-    return {
-      success: false,
-      error: errorMsg,
-      isUnlimited: false,
-      remainingCredits: status.credits,
-      maxCredits: status.maxCredits,
-      resetAt: status.resetAt,
-    };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (currentStatus.isUnlimited) {
+      return {
+        success: true,
+        isUnlimited: true,
+        remainingCredits: 0,
+        maxCredits: 0,
+        resetAt: null,
+      };
+    }
+
+    if (currentStatus.credits < cost) {
+      const errorMsg = `Kredit harian (${currentStatus.plan.toUpperCase()}) kamu habis. Kredit akan di-reset otomatis dalam ${currentStatus.timeRemainingText}, atau upgrade ke paket VIP untuk akses tanpa batas.`;
+      return {
+        success: false,
+        error: errorMsg,
+        isUnlimited: false,
+        remainingCredits: currentStatus.credits,
+        maxCredits: currentStatus.maxCredits,
+        resetAt: currentStatus.resetAt,
+      };
+    }
+
+    const newCredits = Math.max(0, currentStatus.credits - cost);
+    const { data: updated, error: updateError } = await supabase
+      .from("profiles")
+      .update({
+        credits: newCredits,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId)
+      .eq("credits", currentStatus.credits)
+      .select("credits")
+      .maybeSingle();
+
+    if (updateError) {
+      console.error("Gagal mengurangi kredit:", updateError);
+      break;
+    }
+
+    if (updated) {
+      return {
+        success: true,
+        isUnlimited: false,
+        remainingCredits:
+          typeof updated.credits === "number" ? updated.credits : newCredits,
+        maxCredits: currentStatus.maxCredits,
+        resetAt: currentStatus.resetAt,
+      };
+    }
+
+    // Kalah race: baca ulang status kredit lalu coba lagi.
+    currentStatus = await checkAndRefreshCredits(userId);
   }
 
+  const errorMsg = `Kredit harian (${currentStatus.plan.toUpperCase()}) kamu habis. Kredit akan di-reset otomatis dalam ${currentStatus.timeRemainingText}, atau upgrade ke paket VIP untuk akses tanpa batas.`;
   return {
-    success: true,
+    success: false,
+    error: errorMsg,
     isUnlimited: false,
-    remainingCredits: newCredits,
-    maxCredits: status.maxCredits,
-    resetAt: status.resetAt,
+    remainingCredits: currentStatus.credits,
+    maxCredits: currentStatus.maxCredits,
+    resetAt: currentStatus.resetAt,
   };
 }

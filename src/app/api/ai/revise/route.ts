@@ -5,6 +5,7 @@ import { revisePRDWithAI } from "@/lib/ai/9router";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
 import { consumeCredits } from "@/lib/security/credits";
 import { getEffectivePlan } from "@/lib/plan";
+import { resolveModelForPlan } from "@/lib/ai/model-access";
 import { z } from "zod";
 
 const reviseSchema = z.object({
@@ -12,13 +13,6 @@ const reviseSchema = z.object({
   instruction: z.string().min(3, "Instruksi revisi minimal 3 karakter").max(4000, "Instruksi revisi maksimal 4000 karakter"),
   modelOverride: z.string().min(1).max(100).optional(),
 });
-
-const TIER_LEVELS: Record<string, number> = {
-  trial: 1,
-  basic: 2,
-  vip: 3,
-  enterprise: 4,
-};
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,7 +42,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
     const validation = reviseSchema.safeParse(body);
 
     if (!validation.success) {
@@ -77,43 +71,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2b. Cek & Konsumsi Kredit Harian untuk Revisi PRD (Reset Rolling 24 Jam)
-    const creditResult = await consumeCredits(user.id, 1);
-    if (!creditResult.success) {
+    // 3. Validasi model sebelum kredit dikonsumsi.
+    const modelResolution = await resolveModelForPlan(effectivePlan, modelOverride);
+    if (!modelResolution.model) {
       return NextResponse.json(
-        { error: creditResult.error || "Kredit harian kamu telah habis." },
-        { status: 403 }
+        { error: modelResolution.error || "Model AI tidak tersedia." },
+        { status: modelResolution.status || 403 }
       );
-    }
-
-    // 3. Validasi Model Tier Lock
-    if (modelOverride) {
-      const { data: modelData } = await adminSupabase
-        .from("ai_models")
-        .select("name, min_tier")
-        .eq("model_id", modelOverride)
-        .eq("is_active", true)
-        .single();
-
-      // Wajib terdaftar & aktif; tolak bila tidak dikenal (cegah bypass tier)
-      if (!modelData) {
-        return NextResponse.json(
-          { error: "Model AI yang diminta tidak ditemukan atau tidak aktif." },
-          { status: 403 }
-        );
-      }
-
-      const userPlanLevel = TIER_LEVELS[effectivePlan] || 1;
-      const requiredLevel = TIER_LEVELS[modelData.min_tier?.toLowerCase() || "basic"] || 1;
-
-      if (userPlanLevel < requiredLevel) {
-        return NextResponse.json(
-          {
-            error: `Model AI "${modelData.name}" membutuhkan paket ${modelData.min_tier.toUpperCase()} ke atas. Silakan upgrade paket Anda untuk menggunakan model ini.`,
-          },
-          { status: 403 }
-        );
-      }
     }
 
     // 4. Ambil data PRD saat ini & pastikan milik user yang login
@@ -131,11 +95,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Konsumsi kredit setelah PRD dan model tervalidasi, agar kredit tidak
+    // terpotong untuk request yang seharusnya ditolak.
+    const creditResult = await consumeCredits(user.id, 1);
+    if (!creditResult.success) {
+      return NextResponse.json(
+        { error: creditResult.error || "Kredit harian kamu telah habis." },
+        { status: 403 }
+      );
+    }
+
     // 5. Revisi via 9router AI
     const { revisedMarkdown } = await revisePRDWithAI({
       currentContent: currentPrd.content_markdown,
       revisionInstruction: instruction,
-      modelOverride,
+      modelOverride: modelResolution.model.model_id,
     });
 
     const nextVersion = parseFloat((Number(currentPrd.version) + 0.1).toFixed(1));

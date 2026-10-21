@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Rate Limiting dengan dukungan Redis (Upstash) dan fallback in-memory.
@@ -52,18 +53,27 @@ if (typeof setInterval !== "undefined") {
 }
 
 /**
- * Ekstraksi IP klien secara aman dari request header
+ * Ekstraksi IP klien secara aman dari request header.
+ * Prioritas: IP yang diisi platform (request.ip / x-real-ip), lalu header
+ * Cloudflare, baru X-Forwarded-For. XFF bisa dipalsukan klien, jadi dipakai
+ * sebagai pilihan terakhir dan mengambil hop terakhir (proxy terdekat).
  */
 export function getClientIp(req: Request | NextRequest): string {
   const headers = req.headers;
+
+  const platformIp = (req as NextRequest).ip;
+  if (platformIp) return platformIp;
+
+  const realIp = headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+
+  const cloudflareIp = headers.get("cf-connecting-ip");
+  if (cloudflareIp) return cloudflareIp.trim();
+
   const forwardedFor = headers.get("x-forwarded-for");
   if (forwardedFor) {
-    return forwardedFor.split(",")[0].trim();
-  }
-
-  const realIp = headers.get("x-real-ip") || headers.get("cf-connecting-ip");
-  if (realIp) {
-    return realIp.trim();
+    const hops = forwardedFor.split(",").map((part) => part.trim()).filter(Boolean);
+    if (hops.length > 0) return hops[hops.length - 1];
   }
 
   return "127.0.0.1";
@@ -74,6 +84,47 @@ export interface RateLimitResult {
   limit: number;
   remaining: number;
   resetSeconds: number;
+}
+
+/**
+ * Fallback lintas-instance berbasis database. Dipakai ketika Redis tidak
+ * dikonfigurasi, sehingga rate limit tidak hanya hidup di memori satu
+ * serverless instance.
+ */
+async function checkDatabaseRateLimit(
+  identifier: string,
+  action: string,
+  limit: number,
+  windowSeconds: number
+): Promise<RateLimitResult | null> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
+
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase.rpc("check_rate_limit", {
+      p_key: `ratelimit:${action}:${identifier}`,
+      p_limit: limit,
+      p_window_seconds: windowSeconds,
+    });
+
+    if (error || !Array.isArray(data) || !data[0]) return null;
+
+    const row = data[0] as {
+      allowed?: boolean;
+      remaining?: number;
+      reset_seconds?: number;
+    };
+
+    return {
+      allowed: Boolean(row.allowed),
+      limit,
+      remaining: Number(row.remaining) || 0,
+      resetSeconds: Number(row.reset_seconds) || 1,
+    };
+  } catch (err) {
+    console.warn("Database rate limit tidak tersedia, fallback ke in-memory:", err);
+    return null;
+  }
 }
 
 /**
@@ -126,7 +177,16 @@ export async function checkRateLimit(
     }
   }
 
-  // In-Memory Fallback
+  // Fallback lintas-instance (production tanpa Redis)
+  const databaseResult = await checkDatabaseRateLimit(
+    identifier,
+    action,
+    limit,
+    windowSeconds
+  );
+  if (databaseResult) return databaseResult;
+
+  // In-Memory Fallback (last resort)
   const existing = rateLimitStore.get(key);
 
   if (!existing || now > existing.resetAt) {

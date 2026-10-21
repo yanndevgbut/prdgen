@@ -10,13 +10,26 @@ export async function POST(req: NextRequest) {
 
     // 1. Verifikasi Webhook Secret dari Header X-Secret (jika dikonfigurasi)
     const incomingSecret = req.headers.get("x-secret");
+    const isProduction = process.env.NODE_ENV === "production";
 
-    if (config.webhookSecret && incomingSecret !== config.webhookSecret) {
+    if (!config.webhookSecret) {
+      // Fail closed di production: webhook tanpa secret tidak boleh dipercaya.
+      if (isProduction) {
+        console.error("PAKASIR webhook secret belum dikonfigurasi di production.");
+        return NextResponse.json(
+          { error: "Webhook secret not configured" },
+          { status: 401 }
+        );
+      }
+    } else if (incomingSecret !== config.webhookSecret) {
       console.warn("Pakasir Webhook unauthorized secret:", incomingSecret);
       return NextResponse.json({ error: "Invalid webhook secret" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Payload JSON tidak valid." }, { status: 400 });
+    }
     const { txn_id, order_id, status, completed_at, amount, is_sandbox } = body;
 
     if (!order_id) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FALLBACK_PRICING_PLANS, getPlanBasePrice, type PricingPlans } from "@/lib/pricing";
+import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
 import { z } from "zod";
 
 const validateCouponSchema = z.object({
@@ -24,7 +25,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    // Cegah enumerasi kode kupon dari akun yang sudah login.
+    const rateLimit = await checkRateLimit(user.id, "validate_coupon", 10, 60);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: `Terlalu banyak percobaan kupon. Silakan tunggu ${rateLimit.resetSeconds} detik.`,
+        },
+        { status: 429 }
+      );
+    }
+
+    const body = await req.json().catch(() => null);
     const validation = validateCouponSchema.safeParse(body);
 
     if (!validation.success) {

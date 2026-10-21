@@ -101,6 +101,7 @@ export default function AdminPage() {
     provider: "9router",
     base_url: "https://api.9router.com/v1",
     api_key: "",
+    api_key_set: false,
     temperature: 0.7,
     max_tokens: 4096,
   });
@@ -124,7 +125,9 @@ export default function AdminPage() {
   const [pakasirSettings, setPakasirSettings] = useState({
     slug: "",
     api_key: "",
+    api_key_set: false,
     webhook_secret: "",
+    webhook_secret_set: false,
     base_url: "https://app.pakasir.com",
   });
   const [showPakasirKey, setShowPakasirKey] = useState(false);
@@ -323,7 +326,10 @@ export default function AdminPage() {
   };
 
   const handleTestPakasir = async () => {
-    if (!pakasirSettings.slug || !pakasirSettings.api_key) {
+    if (
+      !pakasirSettings.slug ||
+      (!pakasirSettings.api_key && !pakasirSettings.api_key_set)
+    ) {
       alert("Isi Slug dan API Key terlebih dahulu.");
       return;
     }
@@ -1475,7 +1481,11 @@ export default function AdminPage() {
                             type={showApiKey ? "text" : "password"}
                             value={aiSettings.api_key}
                             onChange={(e) => setAiSettings({ ...aiSettings, api_key: e.target.value })}
-                            placeholder="Masukkan 9router API Key..."
+                            placeholder={
+                              aiSettings.api_key_set
+                                ? "Tersimpan. Kosongkan untuk mempertahankan."
+                                : "Masukkan 9router API Key..."
+                            }
                             className="flex-1 px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none font-mono"
                           />
                           <button
@@ -1626,7 +1636,11 @@ export default function AdminPage() {
                           type={showPakasirKey ? "text" : "password"}
                           value={pakasirSettings.api_key}
                           onChange={(e) => setPakasirSettings({ ...pakasirSettings, api_key: e.target.value })}
-                          placeholder="Masukkan API Key Pakasir..."
+                          placeholder={
+                            pakasirSettings.api_key_set
+                              ? "Tersimpan. Kosongkan untuk mempertahankan."
+                              : "Masukkan API Key Pakasir..."
+                          }
                           className="flex-1 px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none font-mono"
                         />
                         <button
@@ -1646,7 +1660,11 @@ export default function AdminPage() {
                           type={showPakasirWebhook ? "text" : "password"}
                           value={pakasirSettings.webhook_secret}
                           onChange={(e) => setPakasirSettings({ ...pakasirSettings, webhook_secret: e.target.value })}
-                          placeholder="Secret untuk verifikasi webhook Pakasir..."
+                          placeholder={
+                            pakasirSettings.webhook_secret_set
+                              ? "Tersimpan. Kosongkan untuk mempertahankan."
+                              : "Secret untuk verifikasi webhook Pakasir..."
+                          }
                           className="flex-1 px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none font-mono"
                         />
                         <button

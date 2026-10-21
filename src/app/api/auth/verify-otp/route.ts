@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
     const validation = verifyOtpSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
@@ -109,6 +109,9 @@ export async function POST(req: NextRequest) {
             full_name: record.full_name,
             plan: "trial",
           },
+          app_metadata: {
+            prdgen_verified: true,
+          },
         });
 
       if (updateAuthErr) {
@@ -135,6 +138,9 @@ export async function POST(req: NextRequest) {
         user_metadata: {
           full_name: record.full_name,
           plan: "trial",
+        },
+        app_metadata: {
+          prdgen_verified: true,
         },
       });
 

@@ -25,7 +25,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Payload JSON tidak valid." }, { status: 400 });
+    }
     const { baseUrl, apiKey, model } = body;
 
     const result = await test9routerConnection({

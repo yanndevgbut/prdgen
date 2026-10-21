@@ -62,12 +62,17 @@ export async function getDynamicAIConfig(): Promise<AIConfig> {
       if (val.max_tokens !== undefined) maxTokens = Number(val.max_tokens);
     }
 
+    // Gunakan maybeSingle + limit agar konfigurasi lama yang memiliki lebih
+    // dari satu model default tidak membuat seluruh konfigurasi jatuh ke
+    // fallback hardcoded.
     const { data: modelData } = await supabase
       .from("ai_models")
       .select("model_id")
       .eq("is_default", true)
       .eq("is_active", true)
-      .single();
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
 
     if (modelData?.model_id) {
       defaultModel = modelData.model_id;
