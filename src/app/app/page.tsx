@@ -1073,26 +1073,32 @@ export default function WorkspacePage() {
                     type="button"
                     onClick={() => setMode("manual")}
                     aria-pressed={mode === "manual"}
-                    className={`aspect-square w-full flex items-center justify-center rounded-xl border px-4 text-center text-base font-semibold text-white transition-all ${
+                    className={`aspect-square w-full flex flex-col items-center justify-center gap-2 rounded-xl border px-4 text-center text-white transition-all ${
                       mode === "manual"
                         ? "bg-[#1A1A1C] border-primary-light/50"
                         : "bg-bg-input border-border hover:bg-white/5 hover:border-text-dim"
                     }`}
                   >
-                    Isi Sendiri
+                    <span className="text-base font-semibold">Isi Sendiri</span>
+                    <span className="text-[11px] leading-tight text-muted">
+                      Pertanyaan disesuaikan dengan produk, diisi manual secara bebas.
+                    </span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setMode("ai")}
                     aria-pressed={mode === "ai"}
-                    className={`aspect-square w-full flex items-center justify-center rounded-xl border px-4 text-center text-base font-semibold text-white transition-all ${
+                    className={`aspect-square w-full flex flex-col items-center justify-center gap-2 rounded-xl border px-4 text-center text-white transition-all ${
                       mode === "ai"
                         ? "bg-[#1A1A1C] border-primary-light/50"
                         : "bg-bg-input border-border hover:bg-white/5 hover:border-text-dim"
                     }`}
                   >
-                    Tanya Jawab AI
+                    <span className="text-base font-semibold">Tanya Jawab AI</span>
+                    <span className="text-[11px] leading-tight text-muted">
+                      AI menganalisis ide produk dan memberikan opsi rekomendasi instan.
+                    </span>
                   </button>
                 </div>
 
