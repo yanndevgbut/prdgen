@@ -9,6 +9,8 @@ interface ShareAgentModalProps {
   prdId: string;
   prdTitle: string;
   prdMarkdown: string;
+  isPublic: boolean;
+  onPublicChange?: (next: boolean) => void;
 }
 
 export function ShareAgentModal({
@@ -17,16 +19,28 @@ export function ShareAgentModal({
   prdId,
   prdTitle,
   prdMarkdown,
+  isPublic,
+  onPublicChange,
 }: ShareAgentModalProps) {
   const [selectedFormat, setSelectedFormat] = useState<"coding_agent" | "frontend_v0" | "curl_command">("coding_agent");
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [rawApiUrl, setRawApiUrl] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [publicEnabled, setPublicEnabled] = useState(isPublic);
+  const [savingVisibility, setSavingVisibility] = useState(false);
+  const [visibilityError, setVisibilityError] = useState("");
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setPublicEnabled(isPublic);
+      setVisibilityError("");
+    }
+  }, [isOpen, isPublic]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && prdId) {
@@ -49,6 +63,34 @@ export function ShareAgentModal({
   }, [isOpen]);
 
   if (!isOpen || !mounted) return null;
+
+  const handleTogglePublic = async () => {
+    if (!prdId || savingVisibility) return;
+
+    const next = !publicEnabled;
+    setSavingVisibility(true);
+    setVisibilityError("");
+
+    try {
+      const res = await fetch(`/api/prd/${prdId}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublic: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Gagal mengubah status berbagi.");
+      }
+
+      setPublicEnabled(data?.isPublic === true);
+      onPublicChange?.(data?.isPublic === true);
+    } catch (err: any) {
+      setVisibilityError(err?.message || "Gagal mengubah status berbagi.");
+    } finally {
+      setSavingVisibility(false);
+    }
+  };
 
   const getAgentPrompt = () => {
     if (selectedFormat === "curl_command") {
@@ -133,84 +175,137 @@ Instruksi Pengerjaan:
           </button>
         </div>
 
-        {/* Live Endpoints Bar */}
-        <div className="p-3 bg-bg-input border border-border rounded-lg mb-4 space-y-2 text-xs">
-          <div className="flex justify-between items-center text-dim text-[11px] font-semibold uppercase tracking-wider">
-            <span>Live Agent Endpoint (Raw Markdown):</span>
-            <button
-              onClick={handleCopyRawUrl}
-              className="text-primary-light font-medium lowercase"
-            >
-              salin url
-            </button>
-          </div>
-          <div className="p-2 bg-black/40 border border-white/5 rounded font-mono text-[11px] text-ink-soft truncate select-all">
-            {rawApiUrl}
-          </div>
-        </div>
-
-        {/* Format Selector */}
-        <div className="space-y-1.5 mb-3">
-          <label className="text-xs font-semibold text-white block">
-            Pilih Format Prompt untuk Agent:
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+        {/* Public Access Toggle */}
+        <div className="p-3 bg-bg-input border border-border rounded-lg mb-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-white">
+                Link publik {publicEnabled ? "aktif" : "nonaktif"}
+              </div>
+              <p className="text-[11px] text-muted mt-1 leading-relaxed">
+                {publicEnabled
+                  ? "Siapa pun yang memiliki link dapat membuka viewer dan membaca endpoint raw. Nonaktifkan untuk mencabut akses."
+                  : "Viewer dan endpoint raw hanya bisa dibuka setelah link publik diaktifkan. Dokumen tetap privat."}
+              </p>
+              {visibilityError && (
+                <p className="text-[11px] text-red-400 mt-1.5">{visibilityError}</p>
+              )}
+            </div>
             <button
               type="button"
-              onClick={() => setSelectedFormat("coding_agent")}
-              className={`p-2.5 rounded-lg border text-left transition-all ${
-                selectedFormat === "coding_agent"
-                  ? "bg-primary border-primary-light/50 text-white font-semibold"
-                  : "bg-bg-input border-border text-muted hover:text-white"
+              role="switch"
+              aria-checked={publicEnabled}
+              aria-label="Aktifkan link publik"
+              onClick={handleTogglePublic}
+              disabled={savingVisibility || !prdId}
+              className={`relative flex-shrink-0 w-11 h-6 rounded-full border transition-colors disabled:opacity-60 ${
+                publicEnabled
+                  ? "bg-primary border-primary-light/50"
+                  : "bg-black/40 border-border"
               }`}
             >
-              <div className="font-semibold text-white text-[11px]">Coding Agent</div>
-              <div className="text-[10px] text-muted mt-0.5 leading-tight">Claude Code, Cursor, Aider</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedFormat("frontend_v0")}
-              className={`p-2.5 rounded-lg border text-left transition-all ${
-                selectedFormat === "frontend_v0"
-                  ? "bg-primary border-primary-light/50 text-white font-semibold"
-                  : "bg-bg-input border-border text-muted hover:text-white"
-              }`}
-            >
-              <div className="font-semibold text-white text-[11px]">UI Builder Agent</div>
-              <div className="text-[10px] text-muted mt-0.5 leading-tight">v0.dev, Bolt.new, Lovable</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedFormat("curl_command")}
-              className={`p-2.5 rounded-lg border text-left transition-all ${
-                selectedFormat === "curl_command"
-                  ? "bg-primary border-primary-light/50 text-white font-semibold"
-                  : "bg-bg-input border-border text-muted hover:text-white"
-              }`}
-            >
-              <div className="font-semibold text-white text-[11px]">Terminal Command</div>
-              <div className="text-[10px] text-muted mt-0.5 leading-tight">curl pipe to CLI agent</div>
+              <span
+                className={`absolute top-0.5 left-0.5 w-[18px] h-[18px] rounded-full bg-white transition-transform ${
+                  publicEnabled ? "translate-x-[22px]" : "translate-x-0"
+                }`}
+              />
             </button>
           </div>
         </div>
 
-        {/* Prompt Preview Box */}
-        <div className="flex-1 min-h-0 bg-black/40 border border-border rounded-lg p-3 font-mono text-[11px] text-ink-soft overflow-y-auto whitespace-pre-wrap select-all mb-4 max-h-48 leading-relaxed">
-          {getAgentPrompt()}
-        </div>
+        {!publicEnabled ? (
+          <div className="flex-1 flex items-center justify-center p-6 text-center border border-dashed border-border rounded-lg mb-4">
+            <p className="text-xs text-muted leading-relaxed max-w-xs">
+              Aktifkan link publik untuk membuat URL viewer, endpoint raw markdown,
+              dan prompt siap tempel untuk AI Agent.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Live Endpoints Bar */}
+            <div className="p-3 bg-bg-input border border-border rounded-lg mb-4 space-y-2 text-xs">
+              <div className="flex justify-between items-center text-dim text-[11px] font-semibold uppercase tracking-wider">
+                <span>Live Agent Endpoint (Raw Markdown):</span>
+                <button
+                  onClick={handleCopyRawUrl}
+                  className="text-primary-light font-medium lowercase"
+                >
+                  salin url
+                </button>
+              </div>
+              <div className="p-2 bg-black/40 border border-white/5 rounded font-mono text-[11px] text-ink-soft truncate select-all">
+                {rawApiUrl}
+              </div>
+            </div>
+
+            {/* Format Selector */}
+            <div className="space-y-1.5 mb-3">
+              <label className="text-xs font-semibold text-white block">
+                Pilih Format Prompt untuk Agent:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setSelectedFormat("coding_agent")}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    selectedFormat === "coding_agent"
+                      ? "bg-primary border-primary-light/50 text-white font-semibold"
+                      : "bg-bg-input border-border text-muted hover:text-white"
+                  }`}
+                >
+                  <div className="font-semibold text-white text-[11px]">Coding Agent</div>
+                  <div className="text-[10px] text-muted mt-0.5 leading-tight">Claude Code, Cursor, Aider</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedFormat("frontend_v0")}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    selectedFormat === "frontend_v0"
+                      ? "bg-primary border-primary-light/50 text-white font-semibold"
+                      : "bg-bg-input border-border text-muted hover:text-white"
+                  }`}
+                >
+                  <div className="font-semibold text-white text-[11px]">UI Builder Agent</div>
+                  <div className="text-[10px] text-muted mt-0.5 leading-tight">v0.dev, Bolt.new, Lovable</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedFormat("curl_command")}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    selectedFormat === "curl_command"
+                      ? "bg-primary border-primary-light/50 text-white font-semibold"
+                      : "bg-bg-input border-border text-muted hover:text-white"
+                  }`}
+                >
+                  <div className="font-semibold text-white text-[11px]">Terminal Command</div>
+                  <div className="text-[10px] text-muted mt-0.5 leading-tight">curl pipe to CLI agent</div>
+                </button>
+              </div>
+            </div>
+
+            {/* Prompt Preview Box */}
+            <div className="flex-1 min-h-0 bg-black/40 border border-border rounded-lg p-3 font-mono text-[11px] text-ink-soft overflow-y-auto whitespace-pre-wrap select-all mb-4 max-h-48 leading-relaxed">
+              {getAgentPrompt()}
+            </div>
+          </>
+        )}
 
         {/* Actions Footer */}
         <div className="flex justify-between items-center pt-3 border-t border-border flex-wrap gap-2">
-          <a
-            href={shareUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-muted hover:text-white transition-colors"
-          >
-            Buka Halaman Public Viewer &rarr;
-          </a>
+          {publicEnabled ? (
+            <a
+              href={shareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted hover:text-white transition-colors"
+            >
+              Buka Halaman Public Viewer &rarr;
+            </a>
+          ) : (
+            <span className="text-xs text-dim">Akses publik dinonaktifkan.</span>
+          )}
 
           <div className="flex gap-2">
             <button
@@ -223,7 +318,8 @@ Instruksi Pengerjaan:
             <button
               type="button"
               onClick={handleCopy}
-              className="px-5 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-colors"
+              disabled={!publicEnabled}
+              className="px-5 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {copied ? "Berhasil Disalin!" : "Salin Prompt untuk Agent"}
             </button>

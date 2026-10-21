@@ -78,11 +78,13 @@ CREATE TABLE IF NOT EXISTS public.prds (
     task_breakdown JSONB NOT NULL DEFAULT '[]'::jsonb,
     status prd_status NOT NULL DEFAULT 'draft',
     version NUMERIC(4,1) NOT NULL DEFAULT 1.0,
+    is_public BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_prds_user_id ON public.prds(user_id);
+CREATE INDEX IF NOT EXISTS idx_prds_public ON public.prds(id) WHERE is_public = true;
 CREATE INDEX IF NOT EXISTS idx_prds_status ON public.prds(status);
 CREATE INDEX IF NOT EXISTS idx_prds_created_at ON public.prds(created_at DESC);
 

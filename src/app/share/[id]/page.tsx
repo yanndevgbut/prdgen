@@ -14,12 +14,17 @@ interface SharePageProps {
   };
 }
 
+// Status publik bisa dicabut kapan saja. Jangan cache halaman share.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateMetadata({ params }: SharePageProps) {
   const supabase = createAdminClient();
   const { data: prd } = await supabase
     .from("prds")
     .select("title")
     .eq("id", params.id)
+    .eq("is_public", true)
     .single();
 
   return {
@@ -46,6 +51,7 @@ export default async function SharePublicPage({ params }: SharePageProps) {
     .from("prds")
     .select("*")
     .eq("id", id)
+    .eq("is_public", true)
     .single();
 
   if (error || !prd) {

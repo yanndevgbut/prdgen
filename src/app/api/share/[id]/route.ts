@@ -7,6 +7,10 @@ interface Params {
   };
 }
 
+// Jangan cache endpoint publik: akses harus langsung tercabut saat is_public
+// dimatikan oleh pemilik PRD.
+export const dynamic = "force-dynamic";
+
 /**
  * Public Raw AI Agent Endpoint:
  * Mengembalikan isi dokumen PRD mentah dalam format plain markdown (text/markdown).
@@ -28,12 +32,13 @@ export async function GET(req: NextRequest, { params }: Params) {
     const supabase = createAdminClient();
     const { data: prd, error } = await supabase
       .from("prds")
-      .select("id, title, content_markdown, version, updated_at")
+      .select("id, title, content_markdown, version, updated_at, is_public")
       .eq("id", id)
+      .eq("is_public", true)
       .single();
 
     if (error || !prd) {
-      return new NextResponse("Error: Dokumen PRD tidak ditemukan.", {
+      return new NextResponse("Error: Dokumen PRD tidak ditemukan atau tidak dibagikan secara publik.", {
         status: 404,
         headers: { "Content-Type": "text/plain; charset=utf-8" },
       });
@@ -44,7 +49,9 @@ export async function GET(req: NextRequest, { params }: Params) {
       status: 200,
       headers: {
         "Content-Type": "text/markdown; charset=utf-8",
-        "Cache-Control": "public, max-age=60, s-maxage=60",
+        // Jangan cache agar pencabutan akses publik langsung berlaku.
+        "Cache-Control": "private, no-store, max-age=0",
+        "X-Robots-Tag": "noindex, nofollow",
         "X-PRD-Title": encodeURIComponent(prd.title),
         "X-PRD-Version": String(prd.version),
       },

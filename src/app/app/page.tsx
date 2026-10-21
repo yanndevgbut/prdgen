@@ -26,6 +26,7 @@ interface PRDRecord {
   version: number;
   content_markdown: string;
   task_breakdown: Array<{ task: string; done: boolean }>;
+  is_public?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -1900,6 +1901,13 @@ export default function WorkspacePage() {
         prdId={activePrd?.id || ""}
         prdTitle={activePrd?.title || ""}
         prdMarkdown={activePrd?.content_markdown || ""}
+        isPublic={activePrd?.is_public === true}
+        onPublicChange={(next) => {
+          const id = activePrd?.id;
+          if (!id) return;
+          setActivePrd((prev) => (prev && prev.id === id ? { ...prev, is_public: next } : prev));
+          setHistoryList((prev) => prev.map((p) => (p.id === id ? { ...p, is_public: next } : p)));
+        }}
       />
 
       {/* TOAST NOTIFICATION */}
