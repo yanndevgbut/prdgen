@@ -118,6 +118,10 @@ CREATE TABLE IF NOT EXISTS public.ai_models (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_models_single_default
+    ON public.ai_models (is_default)
+    WHERE is_default = true;
+
 CREATE TABLE IF NOT EXISTS public.discount_coupons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code TEXT NOT NULL UNIQUE,
@@ -239,6 +243,19 @@ BEGIN
     END IF;
 END $$;
 
+-- Rate limit lintas-instance (fallback tanpa Redis).
+CREATE TABLE IF NOT EXISTS public.rate_limits (
+    key TEXT PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 0,
+    reset_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_rate_limits_reset_at
+    ON public.rate_limits (reset_at);
+
+ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.rate_limits FROM anon, authenticated;
+
 -- ------------------------------------------------------------------------------
 -- 4. FUNCTIONS & TRIGGERS
 -- ------------------------------------------------------------------------------
@@ -257,6 +274,50 @@ BEGIN
     );
 END;
 $$;
+
+-- Rate limit atomik lintas-instance. Hanya service role yang boleh memanggil.
+CREATE OR REPLACE FUNCTION public.check_rate_limit(
+    p_key TEXT,
+    p_limit INTEGER,
+    p_window_seconds INTEGER
+)
+RETURNS TABLE (allowed BOOLEAN, remaining INTEGER, reset_seconds INTEGER)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_count INTEGER;
+    v_reset TIMESTAMPTZ;
+BEGIN
+    INSERT INTO public.rate_limits AS rl (key, count, reset_at)
+    VALUES (p_key, 1, NOW() + make_interval(secs => p_window_seconds))
+    ON CONFLICT (key) DO UPDATE
+        SET count = CASE
+                WHEN rl.reset_at <= NOW() THEN 1
+                ELSE rl.count + 1
+            END,
+            reset_at = CASE
+                WHEN rl.reset_at <= NOW()
+                    THEN NOW() + make_interval(secs => p_window_seconds)
+                ELSE rl.reset_at
+            END
+    RETURNING rl.count, rl.reset_at INTO v_count, v_reset;
+
+    allowed := v_count <= p_limit;
+    remaining := GREATEST(p_limit - v_count, 0);
+    reset_seconds := GREATEST(
+        CEIL(EXTRACT(EPOCH FROM (v_reset - NOW())))::INTEGER,
+        1
+    );
+
+    RETURN NEXT;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INTEGER, INTEGER) TO service_role;
 
 -- RPC aman untuk user mengganti nama sendiri tanpa bisa mengubah plan/credits/role.
 CREATE OR REPLACE FUNCTION public.update_my_profile(new_full_name TEXT)
@@ -344,6 +405,30 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Blokir signup publik langsung ke Supabase Auth. Hanya alur OTP server yang
+-- boleh membuat user, dengan app_metadata.prdgen_verified=true.
+CREATE OR REPLACE FUNCTION public.enforce_verified_signup()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, pg_temp
+AS $$
+BEGIN
+    IF COALESCE(NEW.raw_app_meta_data->>'prdgen_verified', 'false') <> 'true' THEN
+        RAISE EXCEPTION 'Pendaftaran publik dinonaktifkan. Gunakan alur verifikasi OTP PRDGen.'
+            USING ERRCODE = 'P0001';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS enforce_verified_signup ON auth.users;
+
+CREATE TRIGGER enforce_verified_signup
+BEFORE INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.enforce_verified_signup();
 
 -- Trigger: Increment user's prd_count when a new PRD is created
 CREATE OR REPLACE FUNCTION public.handle_new_prd()
@@ -559,7 +644,8 @@ ON CONFLICT (key) DO NOTHING;
 -- 6.2 Default AI Models Seed
 INSERT INTO public.ai_models (name, model_id, provider, min_tier, is_default, is_active)
 VALUES
-    ('Gemini 1.5 Pro', 'gemini-1.5-pro-latest', 'Google (via 9router)', 'vip', true, true),
+    ('Gemini 3.6 Flash', 'ag/gemini-3.6-flash-medium', '9router', 'trial', true, true),
+    ('Gemini 1.5 Pro', 'gemini-1.5-pro-latest', 'Google (via 9router)', 'vip', false, true),
     ('Gemini 1.5 Flash', 'gemini-1.5-flash', 'Google (via 9router)', 'basic', false, true),
     ('GPT-4o', 'gpt-4o', 'OpenAI (via 9router)', 'enterprise', false, true),
     ('Claude 3.5 Sonnet', 'claude-3-5-sonnet-20240620', 'Anthropic (via 9router)', 'vip', false, true),
