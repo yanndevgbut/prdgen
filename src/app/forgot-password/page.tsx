@@ -212,7 +212,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex-1 flex items-center justify-center p-4 animate-page-enter">
-      <div className="w-full max-w-[380px] bg-bg-surface border border-border rounded-xl p-6 md:p-8 shadow-2xl">
+      <div className="w-full max-w-[380px] bg-bg-surface border border-border rounded-xl p-6 md:p-8">
         
         {/* ================= STEP 1: INPUT EMAIL ================= */}
         {step === 1 && (
@@ -248,7 +248,7 @@ export default function ForgotPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="nama@email.com"
-                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
                 />
               </div>
 
@@ -276,7 +276,7 @@ export default function ForgotPasswordPage() {
 
             <div className="mt-6 text-center text-xs text-muted">
               Ingat kata sandi Anda?{" "}
-              <Link href="/login" className="text-indigo-400 font-medium hover:underline">
+              <Link href="/login" className="text-primary-light font-medium hover:underline">
                 Kembali ke Login
               </Link>
             </div>
@@ -323,7 +323,7 @@ export default function ForgotPasswordPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="w-10 h-11 text-center text-base font-bold font-mono bg-bg-input border border-border focus:border-primary-hover focus:ring-1 focus:ring-primary-hover rounded-lg text-white outline-none transition-all"
+                      className="w-10 h-11 text-center text-base font-bold font-mono bg-bg-input border border-border focus:border-primary-light focus:ring-1 focus:ring-primary-light rounded-lg text-white outline-none transition-all"
                     />
                   ))}
                 </div>
@@ -341,7 +341,7 @@ export default function ForgotPasswordPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Minimal 6 karakter"
-                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
                 />
               </div>
 
@@ -357,14 +357,14 @@ export default function ForgotPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Ulangi kata sandi baru"
-                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading || otpValues.join("").length !== 6}
-                className="w-full py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors shadow-lg shadow-indigo-600/20"
+                className="w-full py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
               >
                 {loading ? "Memproses..." : "Simpan Kata Sandi Baru"}
               </button>
@@ -385,7 +385,7 @@ export default function ForgotPasswordPage() {
                       type="button"
                       onClick={handleResendOtp}
                       disabled={loading}
-                      className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
+                      className="text-primary-light font-semibold transition-colors"
                     >
                       Kirim Ulang Kode
                     </button>

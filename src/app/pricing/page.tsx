@@ -155,25 +155,25 @@ export default function PricingPage() {
               </div>
               <ul className="space-y-2.5 text-xs text-muted mb-8">
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>10 Kredit PRD per 24 jam (Reset harian)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Tanya jawab AI spesifik</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Ekspor Markdown (.md)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Revisi PRD (1 kredit per revisi)</span>
@@ -189,11 +189,11 @@ export default function PricingPage() {
           </div>
 
           {/* VIP TIER (HIGHLIGHT) */}
-          <div className="bg-[#131627] border border-primary rounded-xl p-6 flex flex-col justify-between shadow-xl shadow-indigo-600/10 relative">
+          <div className="bg-[#1A1A1C] border border-primary-light/50 rounded-xl p-6 flex flex-col justify-between relative">
             <div>
               <div className="flex justify-between items-center mb-1">
                 <h3 className="text-lg font-bold text-white">VIP</h3>
-                <span className="text-[11px] bg-primary/20 text-indigo-300 font-semibold px-2 py-0.5 rounded-full">
+                <span className="text-[11px] bg-primary/20 text-primary-light font-semibold px-2 py-0.5 rounded-full">
                   Paling Populer
                 </span>
               </div>
@@ -209,31 +209,31 @@ export default function PricingPage() {
               </div>
               <ul className="space-y-2.5 text-xs text-muted mb-8">
                 <li className="flex items-center gap-2 text-white font-medium">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Unlimited PRD (tanpa batas)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>AI analisa teknis mendalam</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Ekspor .MD & Cetak PDF</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Revisi AI tanpa batasan</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Task breakdown otomatis</span>
@@ -242,7 +242,7 @@ export default function PricingPage() {
             </div>
             <button
               onClick={() => handleOpenCheckout("vip")}
-              className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg text-center transition-colors shadow-lg shadow-indigo-600/30 cursor-pointer"
+              className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
             >
               {profile?.plan === "vip" ? "Paket Saat Ini" : "Bayar VIP dengan QRIS"}
             </button>
@@ -264,31 +264,31 @@ export default function PricingPage() {
               </div>
               <ul className="space-y-2.5 text-xs text-muted mb-8">
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Semua keunggulan paket VIP</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Kolaborasi tim & multi-user</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Custom template PRD tim</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Prioritas kecepatan generate tertinggi</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-primary-hover flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3.5 h-3.5 text-ink-soft flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   <span>Dukungan teknis prioritas 24/7</span>
@@ -307,7 +307,7 @@ export default function PricingPage() {
       </section>
 
       {/* FAQ SECTION */}
-      <section className="py-16 px-4 md:px-8 border-t border-border bg-[#0b0d14]">
+      <section className="py-16 px-4 md:px-8 border-t border-border bg-[#121213]">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-xl md:text-2xl font-bold text-white text-center mb-8">
             Pertanyaan Umum

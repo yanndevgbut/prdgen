@@ -108,8 +108,8 @@ Instruksi Pengerjaan:
   };
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-scale-in">
-      <div className="relative w-full max-w-xl bg-[#11131d] border border-border rounded-xl p-5 md:p-6 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 animate-scale-in">
+      <div className="relative w-full max-w-xl bg-[#161617] border border-border rounded-xl p-5 md:p-6 overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4 border-b border-border">
@@ -139,12 +139,12 @@ Instruksi Pengerjaan:
             <span>Live Agent Endpoint (Raw Markdown):</span>
             <button
               onClick={handleCopyRawUrl}
-              className="text-indigo-400 hover:text-indigo-300 font-medium lowercase"
+              className="text-primary-light font-medium lowercase"
             >
               salin url
             </button>
           </div>
-          <div className="p-2 bg-black/40 border border-white/5 rounded font-mono text-[11px] text-indigo-200 truncate select-all">
+          <div className="p-2 bg-black/40 border border-white/5 rounded font-mono text-[11px] text-ink-soft truncate select-all">
             {rawApiUrl}
           </div>
         </div>
@@ -160,12 +160,12 @@ Instruksi Pengerjaan:
               onClick={() => setSelectedFormat("coding_agent")}
               className={`p-2.5 rounded-lg border text-left transition-all ${
                 selectedFormat === "coding_agent"
-                  ? "bg-primary border-primary text-white font-semibold"
+                  ? "bg-primary border-primary-light/50 text-white font-semibold"
                   : "bg-bg-input border-border text-muted hover:text-white"
               }`}
             >
               <div className="font-semibold text-white text-[11px]">Coding Agent</div>
-              <div className="text-[10px] text-indigo-200 mt-0.5 leading-tight">Claude Code, Cursor, Aider</div>
+              <div className="text-[10px] text-muted mt-0.5 leading-tight">Claude Code, Cursor, Aider</div>
             </button>
 
             <button
@@ -173,12 +173,12 @@ Instruksi Pengerjaan:
               onClick={() => setSelectedFormat("frontend_v0")}
               className={`p-2.5 rounded-lg border text-left transition-all ${
                 selectedFormat === "frontend_v0"
-                  ? "bg-primary border-primary text-white font-semibold"
+                  ? "bg-primary border-primary-light/50 text-white font-semibold"
                   : "bg-bg-input border-border text-muted hover:text-white"
               }`}
             >
               <div className="font-semibold text-white text-[11px]">UI Builder Agent</div>
-              <div className="text-[10px] text-indigo-200 mt-0.5 leading-tight">v0.dev, Bolt.new, Lovable</div>
+              <div className="text-[10px] text-muted mt-0.5 leading-tight">v0.dev, Bolt.new, Lovable</div>
             </button>
 
             <button
@@ -186,18 +186,18 @@ Instruksi Pengerjaan:
               onClick={() => setSelectedFormat("curl_command")}
               className={`p-2.5 rounded-lg border text-left transition-all ${
                 selectedFormat === "curl_command"
-                  ? "bg-primary border-primary text-white font-semibold"
+                  ? "bg-primary border-primary-light/50 text-white font-semibold"
                   : "bg-bg-input border-border text-muted hover:text-white"
               }`}
             >
               <div className="font-semibold text-white text-[11px]">Terminal Command</div>
-              <div className="text-[10px] text-indigo-200 mt-0.5 leading-tight">curl pipe to CLI agent</div>
+              <div className="text-[10px] text-muted mt-0.5 leading-tight">curl pipe to CLI agent</div>
             </button>
           </div>
         </div>
 
         {/* Prompt Preview Box */}
-        <div className="flex-1 min-h-0 bg-black/40 border border-border rounded-lg p-3 font-mono text-[11px] text-slate-300 overflow-y-auto whitespace-pre-wrap select-all mb-4 max-h-48 leading-relaxed">
+        <div className="flex-1 min-h-0 bg-black/40 border border-border rounded-lg p-3 font-mono text-[11px] text-ink-soft overflow-y-auto whitespace-pre-wrap select-all mb-4 max-h-48 leading-relaxed">
           {getAgentPrompt()}
         </div>
 
@@ -223,7 +223,7 @@ Instruksi Pengerjaan:
             <button
               type="button"
               onClick={handleCopy}
-              className="px-5 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-colors shadow-lg shadow-indigo-600/25"
+              className="px-5 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-colors"
             >
               {copied ? "Berhasil Disalin!" : "Salin Prompt untuk Agent"}
             </button>

@@ -222,7 +222,7 @@ export default function RegisterPage() {
 
   return (
     <div className="flex-1 flex items-center justify-center p-4 animate-page-enter">
-      <div className="w-full max-w-[400px] bg-bg-surface border border-border rounded-xl p-6 md:p-8 shadow-2xl">
+      <div className="w-full max-w-[400px] bg-bg-surface border border-border rounded-xl p-6 md:p-8">
         
         {/* ================= STEP 1: FORM PENDAFTARAN ================= */}
         {step === 1 && (
@@ -256,7 +256,7 @@ export default function RegisterPage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="misal: Alex Pratama"
-                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
                 />
               </div>
 
@@ -271,7 +271,7 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="nama@email.com"
-                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
                 />
               </div>
 
@@ -287,7 +287,7 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Minimal 6 karakter"
-                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+                  className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
                 />
               </div>
 
@@ -323,7 +323,7 @@ export default function RegisterPage() {
 
             <div className="mt-6 text-center text-xs text-muted">
               Sudah punya akun?{" "}
-              <Link href="/login" className="text-indigo-400 font-medium hover:underline">
+              <Link href="/login" className="text-primary-light font-medium hover:underline">
                 Masuk di sini
               </Link>
             </div>
@@ -366,7 +366,7 @@ export default function RegisterPage() {
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    className="w-11 h-12 text-center text-lg font-bold font-mono bg-bg-input border border-border focus:border-primary-hover focus:ring-1 focus:ring-primary-hover rounded-lg text-white outline-none transition-all"
+                    className="w-11 h-12 text-center text-lg font-bold font-mono bg-bg-input border border-border focus:border-primary-light focus:ring-1 focus:ring-primary-light rounded-lg text-white outline-none transition-all"
                   />
                 ))}
               </div>
@@ -374,7 +374,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading || otpValues.join("").length !== 6}
-                className="w-full py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors shadow-lg shadow-indigo-600/20"
+                className="w-full py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
               >
                 {loading ? "Memverifikasi..." : "Verifikasi & Buat Akun"}
               </button>
@@ -395,7 +395,7 @@ export default function RegisterPage() {
                       type="button"
                       onClick={handleResendOtp}
                       disabled={loading}
-                      className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
+                      className="text-primary-light font-semibold transition-colors"
                     >
                       Kirim Ulang Kode
                     </button>

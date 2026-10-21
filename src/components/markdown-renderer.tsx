@@ -38,7 +38,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
               {tableRows.map((row, rIdx) => (
                 <tr key={rIdx} className="hover:bg-white/[0.015] transition-colors">
                   {row.map((cell, cIdx) => (
-                    <td key={cIdx} className="p-2.5 md:p-3 text-slate-300 align-top leading-relaxed">
+                    <td key={cIdx} className="p-2.5 md:p-3 text-ink-soft align-top leading-relaxed">
                       {renderPriorityCell(cell)}
                     </td>
                   ))}
@@ -114,7 +114,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
       renderedElements.push(
         <h2
           key={`h2-${keyIdx++}`}
-          className="text-sm md:text-base font-bold text-indigo-300 tracking-tight mt-4 mb-1.5"
+          className="text-sm md:text-base font-bold text-white tracking-tight mt-4 mb-1.5"
         >
           {renderInlineFormatting(text)}
         </h2>
@@ -152,7 +152,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
                 </svg>
               )}
             </span>
-            <span className={isChecked ? "line-through text-dim" : "text-slate-300"}>
+            <span className={isChecked ? "line-through text-dim" : "text-ink-soft"}>
               {renderInlineFormatting(taskText)}
             </span>
           </div>
@@ -166,7 +166,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
       const match = trimmed.match(/^\s*(\d+)\.\s*(.+)/);
       if (match) {
         renderedElements.push(
-          <div key={`ol-${keyIdx++}`} className="flex items-start gap-2.5 my-1.5 text-xs text-slate-300 leading-relaxed pl-1">
+          <div key={`ol-${keyIdx++}`} className="flex items-start gap-2.5 my-1.5 text-xs text-ink-soft leading-relaxed pl-1">
             <span className="w-4 h-4 rounded-full bg-bg-input border border-border flex items-center justify-center font-bold text-[10px] text-white flex-shrink-0 mt-0.5">
               {match[1]}
             </span>
@@ -182,7 +182,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
       const match = trimmed.match(/^\s*[-*]\s*(.+)/);
       if (match) {
         renderedElements.push(
-          <div key={`ul-${keyIdx++}`} className="flex items-start gap-2 my-1 text-xs text-slate-300 leading-relaxed pl-1">
+          <div key={`ul-${keyIdx++}`} className="flex items-start gap-2 my-1 text-xs text-ink-soft leading-relaxed pl-1">
             <span className="w-1.5 h-1.5 rounded-full bg-primary-hover flex-shrink-0 mt-1.5" />
             <div className="flex-1">{renderInlineFormatting(match[1])}</div>
           </div>
@@ -197,7 +197,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
       renderedElements.push(
         <div
           key={`quote-${keyIdx++}`}
-          className="my-3 p-3 bg-bg-input border-l-2 border-primary-hover rounded-r-lg text-xs text-indigo-200 leading-relaxed italic"
+          className="my-3 p-3 bg-bg-input border-l-2 border-primary-light/50 rounded-r-lg text-xs text-ink-soft leading-relaxed italic"
         >
           {renderInlineFormatting(text)}
         </div>
@@ -215,7 +215,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
 
   flushTable();
 
-  return <div className={`font-sans leading-relaxed text-slate-300 ${className}`}>{renderedElements}</div>;
+  return <div className={`font-sans leading-relaxed text-ink-soft ${className}`}>{renderedElements}</div>;
 }
 
 /**
@@ -240,7 +240,7 @@ function renderPriorityCell(text: string): React.ReactNode {
   }
   if (clean === "Fase 2") {
     return (
-      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-white/[0.04] text-ink-soft border border-border">
         Fase 2
       </span>
     );
@@ -278,7 +278,7 @@ function renderInlineFormatting(text: string): React.ReactNode {
       return (
         <code
           key={idx}
-          className="px-1.5 py-0.5 bg-white/10 text-indigo-300 rounded font-mono text-[11px] border border-white/5"
+          className="px-1.5 py-0.5 bg-white/10 text-ink-soft rounded font-mono text-[11px] border border-white/5"
         >
           {part.slice(1, -1)}
         </code>

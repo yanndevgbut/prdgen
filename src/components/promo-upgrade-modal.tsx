@@ -71,15 +71,12 @@ export function PromoUpgradeModal({
   if (!isOpen || !mounted) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-scale-in">
-      <div className="relative w-full max-w-md bg-[#131627] border border-primary/50 rounded-2xl p-6 md:p-7 shadow-2xl shadow-indigo-600/25 overflow-hidden">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 animate-scale-in">
+      <div className="relative w-full max-w-md bg-[#1A1A1C] border border-primary-light/30 rounded-2xl p-6 md:p-7 overflow-hidden">
         
-        {/* Background glow */}
-        <div className="absolute top-0 right-0 w-48 h-48 bg-primary/15 rounded-full blur-3xl pointer-events-none" />
-
         {/* Header Tag & Close Button */}
         <div className="flex justify-between items-center mb-3 relative z-10">
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-primary/25 text-indigo-300 px-2.5 py-1 rounded-full border border-primary/40">
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-primary/25 text-primary-light px-2.5 py-1 rounded-full border border-primary-light/30">
             PROMO SPESIAL UPGRADE PAKET
           </span>
           <button
@@ -100,7 +97,7 @@ export function PromoUpgradeModal({
             Upgrade ke VIP & Bikin PRD Tanpa Batas!
           </h3>
           <p className="text-xs text-muted leading-relaxed mb-4">
-            Anda saat ini menggunakan paket <strong className="text-indigo-300 uppercase">{userPlan || "Trial"}</strong>. Upgrade ke VIP untuk membuka akses model AI premium & pembuatan PRD tanpa batas harian:
+            Anda saat ini menggunakan paket <strong className="text-ink uppercase">{userPlan || "Trial"}</strong>. Upgrade ke VIP untuk membuka akses model AI premium & pembuatan PRD tanpa batas harian:
           </p>
 
           <ul className="space-y-2 text-xs text-muted mb-6">
@@ -135,7 +132,7 @@ export function PromoUpgradeModal({
             <Link
               href="/pricing"
               onClick={handleClose}
-              className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl text-center transition-all shadow-lg shadow-indigo-600/30"
+              className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl text-center transition-all"
             >
               Lihat Paket VIP (Hemat 20%)
             </Link>

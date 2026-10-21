@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="border-t border-white/[0.08] py-8 px-4 md:px-8 text-xs text-dim bg-[#090a0f]">
+    <footer className="border-t border-white/[0.08] py-8 px-4 md:px-8 text-xs text-dim bg-[#0E0E0F]">
       <div className="max-w-[1100px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
         <div>&copy; {new Date().getFullYear()} PRDGen.ai. Semua hak cipta dilindungi.</div>
         <ul className="flex items-center gap-5 list-none text-muted">

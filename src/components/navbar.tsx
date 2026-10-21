@@ -54,10 +54,10 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-40 px-4 md:px-8 py-3.5 flex items-center justify-between backdrop-blur-md bg-[#090a0f]/85 border-b border-white/[0.08]">
+      <nav className="fixed top-0 left-0 right-0 z-40 px-4 md:px-8 py-3.5 flex items-center justify-between bg-[#0E0E0F] border-b border-white/[0.08]">
         {/* Brand */}
         <Link href="/" className="text-white font-bold text-lg tracking-tight">
-          PRD<span className="text-primary-hover">Gen</span>
+          PRD<span className="text-primary-light">Gen</span>
         </Link>
 
         {/* Desktop Links */}
@@ -79,7 +79,7 @@ export function Navbar() {
           </li>
           {isAdmin && (
             <li>
-              <Link href="/admin" className="text-indigo-400 hover:text-indigo-300 transition-colors font-semibold">
+              <Link href="/admin" className="text-primary-light transition-colors font-semibold">
                 Admin Panel
               </Link>
             </li>
@@ -129,12 +129,12 @@ export function Navbar() {
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/65 backdrop-blur-xs animate-backdrop-fade"
+            className="fixed inset-0 bg-black/65 animate-backdrop-fade"
             onClick={() => setMenuOpen(false)}
           />
 
           {/* Drawer Panel */}
-          <div className="relative w-full max-w-xs bg-[#0d0f18] border-l border-border h-full p-5 flex flex-col justify-between shadow-2xl z-10 overflow-y-auto animate-drawer-slide">
+          <div className="relative w-full max-w-xs bg-[#121213] border-l border-border h-full p-5 flex flex-col justify-between z-10 overflow-y-auto animate-drawer-slide">
             <div className="space-y-6">
               
               {/* Drawer Header */}
@@ -144,7 +144,7 @@ export function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className="text-white font-bold text-base tracking-tight"
                 >
-                  PRD<span className="text-primary-hover">Gen</span>
+                  PRD<span className="text-primary-light">Gen</span>
                 </Link>
                 <button
                   onClick={() => setMenuOpen(false)}
@@ -165,7 +165,7 @@ export function Navbar() {
                     <div className="text-xs font-bold text-white truncate">
                       {profile?.full_name || user.email?.split("@")[0] || "User"}
                     </div>
-                    <span className="text-[10px] uppercase font-bold bg-primary/20 text-indigo-300 px-2 py-0.5 rounded border border-primary/30">
+                    <span className="text-[10px] uppercase font-bold bg-white/[0.04] text-muted px-2 py-0.5 rounded border border-border">
                       {profile?.plan || "Trial"}
                     </span>
                   </div>
@@ -239,7 +239,7 @@ export function Navbar() {
                   <Link
                     href="/admin"
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-indigo-300 hover:text-white bg-indigo-950/30 border border-indigo-500/30 transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary-light hover:text-white bg-white/[0.04] border border-primary-light/25 transition-colors"
                   >
                     <span>Admin Panel</span>
                   </Link>

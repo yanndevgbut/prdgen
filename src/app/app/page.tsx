@@ -663,7 +663,7 @@ export default function WorkspacePage() {
     : questions;
 
   return (
-    <div className="flex-1 flex flex-col min-h-[calc(100vh-56px)] bg-[#090a0f]">
+    <div className="flex-1 flex flex-col min-h-[calc(100vh-56px)] bg-[#0E0E0F]">
       
       {/* POP-UP IKLAN PROMO UNTUK USER TRIAL / UPGRADE PROMPT */}
       <PromoUpgradeModal
@@ -685,7 +685,7 @@ export default function WorkspacePage() {
 
         {/* SIDEBAR RIWAYAT DENGAN FITUR DELETE */}
         <aside
-          className={`w-64 bg-[#0d0f18] border-r border-border p-4 flex flex-col gap-4 flex-shrink-0 z-50 fixed md:static top-14 bottom-0 transition-transform duration-200 ${
+          className={`w-64 bg-[#121213] border-r border-border p-4 flex flex-col gap-4 flex-shrink-0 z-50 fixed md:static top-14 bottom-0 transition-transform duration-200 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
         >
@@ -745,7 +745,7 @@ export default function WorkspacePage() {
               <span className="font-semibold text-white truncate mr-2">
                 {profile?.full_name || user?.email?.split("@")[0] || "User"}
               </span>
-              <span className="text-indigo-400 uppercase text-[10px] font-bold flex-shrink-0">
+              <span className="text-muted uppercase text-[10px] font-bold flex-shrink-0">
                 {profile?.plan || "Trial"}
               </span>
             </div>
@@ -760,7 +760,7 @@ export default function WorkspacePage() {
                   <span className="text-dim">Kredit Harian:</span>
                   <span
                     className={`font-bold font-mono ${
-                      currentCredits > 0 ? "text-indigo-300" : "text-red-400"
+                      currentCredits > 0 ? "text-ink" : "text-red-400"
                     }`}
                   >
                     {currentCredits} / {maxPlanCredits}
@@ -775,7 +775,7 @@ export default function WorkspacePage() {
                 {currentCredits === 0 && (
                   <Link
                     href="/pricing"
-                    className="block text-center text-[10px] text-indigo-400 hover:text-indigo-300 hover:underline pt-1 font-semibold"
+                    className="block text-center text-[10px] text-primary-light hover:underline pt-1 font-semibold"
                   >
                     Upgrade ke VIP &rarr;
                   </Link>
@@ -817,7 +817,7 @@ export default function WorkspacePage() {
               >
                 <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   currentStep === 1
-                    ? "bg-primary text-white shadow-lg shadow-indigo-600/30 ring-2 ring-primary/40"
+                    ? "bg-primary text-white   ring-2 ring-primary-light/30"
                     : currentStep > 1
                     ? "bg-emerald-500 text-white"
                     : "bg-white/10 text-dim"
@@ -836,7 +836,7 @@ export default function WorkspacePage() {
               >
                 <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   currentStep === 2
-                    ? "bg-primary text-white shadow-lg shadow-indigo-600/30 ring-2 ring-primary/40"
+                    ? "bg-primary text-white   ring-2 ring-primary-light/30"
                     : currentStep > 2
                     ? "bg-emerald-500 text-white"
                     : "bg-white/10 text-dim"
@@ -855,7 +855,7 @@ export default function WorkspacePage() {
               >
                 <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   currentStep === 3
-                    ? "bg-primary text-white shadow-lg shadow-indigo-600/30 ring-2 ring-primary/40"
+                    ? "bg-primary text-white   ring-2 ring-primary-light/30"
                     : currentStep > 3
                     ? "bg-emerald-500 text-white"
                     : "bg-white/10 text-dim"
@@ -874,7 +874,7 @@ export default function WorkspacePage() {
               >
                 <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   currentStep === 4
-                    ? "bg-primary text-white shadow-lg shadow-indigo-600/30 ring-2 ring-primary/40"
+                    ? "bg-primary text-white   ring-2 ring-primary-light/30"
                     : "bg-white/10 text-dim"
                 }`}>4</span>
               </div>
@@ -900,7 +900,7 @@ export default function WorkspacePage() {
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="misal: TokoOnlineKu"
-                      className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+                      className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
                     />
                   </div>
 
@@ -913,7 +913,7 @@ export default function WorkspacePage() {
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Jelasin produk apa yang mau dibikin, fitur utamanya apa, dan target penggunanya siapa..."
                       rows={4}
-                      className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none resize-y leading-relaxed transition-colors"
+                      className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none resize-y leading-relaxed transition-colors"
                     />
 
                     {/* SWIPEABLE TEMPLATE PRESET CONTAINER */}
@@ -947,7 +947,7 @@ export default function WorkspacePage() {
                           <div className="text-xs font-semibold text-white flex items-center gap-2">
                             <span>{selectedModelObj ? selectedModelObj.name : "Pilih Model AI"}</span>
                             {selectedModelObj?.is_default && (
-                              <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.2 rounded font-normal border border-indigo-500/30">
+                              <span className="text-[10px] bg-white/[0.04] text-muted px-1.5 py-0.2 rounded font-normal border border-border">
                                 Default
                               </span>
                             )}
@@ -969,7 +969,7 @@ export default function WorkspacePage() {
 
                       {/* Dropdown Menu List */}
                       {modelDropdownOpen && (
-                        <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#11131d] border border-border rounded-xl shadow-2xl p-1.5 z-30 animate-scale-in flex flex-col gap-1 max-h-60 overflow-y-auto">
+                        <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#161617] border border-border rounded-xl p-1.5 z-30 animate-scale-in flex flex-col gap-1 max-h-60 overflow-y-auto">
                           {models.map((m) => {
                             const isSelected = selectedModelId === m.model_id;
                             const locked = isModelLocked(m.min_tier);
@@ -980,7 +980,7 @@ export default function WorkspacePage() {
                                 onClick={() => handleSelectModel(m)}
                                 className={`p-2.5 rounded-lg border text-left transition-all flex items-center justify-between ${
                                   isSelected
-                                    ? "bg-primary/20 border-primary text-white font-medium"
+                                    ? "bg-primary/20 border-primary-light/50 text-white font-medium"
                                     : locked
                                     ? "bg-bg-input/50 border-transparent text-muted opacity-75 hover:opacity-100 hover:bg-white/5"
                                     : "bg-transparent border-transparent text-muted hover:bg-white/5 hover:text-white"
@@ -990,7 +990,7 @@ export default function WorkspacePage() {
                                   <div className="text-xs font-semibold text-white flex items-center gap-1.5">
                                     <span>{m.name}</span>
                                     {m.is_default && (
-                                      <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-1 py-0.2 rounded">
+                                      <span className="text-[9px] bg-white/[0.04] text-muted px-1 py-0.2 rounded">
                                         Default
                                       </span>
                                     )}
@@ -1004,8 +1004,8 @@ export default function WorkspacePage() {
                                       {m.min_tier} Only
                                     </span>
                                   ) : isSelected ? (
-                                    <span className="text-primary-hover text-xs font-bold flex items-center gap-1">
-                                      <svg className="w-3 h-3 text-primary-hover" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <span className="text-primary-light text-xs font-bold flex items-center gap-1">
+                                      <svg className="w-3 h-3 text-primary-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                         <polyline points="20 6 9 17 4 12" />
                                       </svg>
                                       <span>Terpilih</span>
@@ -1032,7 +1032,7 @@ export default function WorkspacePage() {
                         onClick={() => setMode("ai")}
                         className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
                           mode === "ai"
-                            ? "bg-[#131627] border-primary"
+                            ? "bg-[#1A1A1C] border-primary-light/50"
                             : "bg-bg-input border-border hover:border-text-dim"
                         }`}
                       >
@@ -1057,7 +1057,7 @@ export default function WorkspacePage() {
                         onClick={() => setMode("manual")}
                         className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
                           mode === "manual"
-                            ? "bg-[#131627] border-primary"
+                            ? "bg-[#1A1A1C] border-primary-light/50"
                             : "bg-bg-input border-border hover:border-text-dim"
                         }`}
                       >
@@ -1084,7 +1084,7 @@ export default function WorkspacePage() {
                 <div className="flex justify-end mt-8 pt-4 border-t border-border">
                   <button
                     onClick={handleProceedToStep2}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-all shadow-lg shadow-indigo-600/20"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-all"
                   >
                     Lanjut ke Tanya Jawab →
                   </button>
@@ -1113,7 +1113,7 @@ export default function WorkspacePage() {
 
                 {questionLoading ? (
                   <div className="py-16 text-center bg-bg-surface border border-border rounded-xl">
-                    <div className="w-8 h-8 border-2 border-white/10 border-t-primary-hover rounded-full animate-spin mx-auto mb-3" />
+                    <div className="w-8 h-8 border-2 border-white/10 border-t-primary-light rounded-full animate-spin mx-auto mb-3" />
                     <div className="text-xs font-semibold text-white mb-1">AI sedang menganalisis ide produkmu...</div>
                     <div className="text-[11px] text-muted">Menyiapkan pertanyaan fokus satu per satu tanpa menggabungkan topik.</div>
                   </div>
@@ -1146,7 +1146,7 @@ export default function WorkspacePage() {
                               setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
                             }
                             placeholder={q.placeholder || "Ketik jawaban Anda di sini..."}
-                            className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+                            className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
                           />
                         ) : q.type === "single_select" && q.options ? (
                           /* TIPE 2 (AI Mode): SINGLE SELECT */
@@ -1160,7 +1160,7 @@ export default function WorkspacePage() {
                                   onClick={() => handleSingleSelect(q.id, opt)}
                                   className={`p-2.5 rounded-lg border text-left text-xs transition-all flex items-center justify-between ${
                                     isSelected
-                                      ? "bg-primary border-primary text-white font-medium shadow-md shadow-indigo-600/25"
+                                      ? "bg-primary border-primary-light/50 text-white font-medium  "
                                       : "bg-bg-input border-border text-muted hover:border-text-dim hover:text-white"
                                   }`}
                                 >
@@ -1189,12 +1189,12 @@ export default function WorkspacePage() {
                                   onClick={() => handleMultiSelect(q.id, opt)}
                                   className={`flex-shrink-0 px-3 py-2 rounded-lg border text-xs transition-all flex items-center gap-2 ${
                                     isSelected
-                                      ? "bg-indigo-900/40 border-primary-hover text-indigo-200 font-medium"
+                                      ? "bg-primary/10 border-primary-light/50 text-primary-light font-medium"
                                       : "bg-bg-input border-border text-muted hover:border-text-dim hover:text-white"
                                   }`}
                                 >
                                   <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${
-                                    isSelected ? "bg-primary border-primary" : "border-border bg-bg-surface"
+                                    isSelected ? "bg-primary border-primary-light/50" : "border-border bg-bg-surface"
                                   }`}>
                                     {isSelected && (
                                       <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -1247,7 +1247,7 @@ export default function WorkspacePage() {
                             setQuestionPage(2);
                             window.scrollTo({ top: 0, behavior: "smooth" });
                           }}
-                          className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-all shadow-lg shadow-indigo-600/20"
+                          className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-all"
                         >
                           Lanjut ke Soal 6–{totalQuestions} →
                         </button>
@@ -1264,7 +1264,7 @@ export default function WorkspacePage() {
                         <button
                           disabled={questionLoading}
                           onClick={handleGenerate}
-                          className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-all shadow-lg shadow-indigo-600/20"
+                          className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-all"
                         >
                           Generate PRD Sekarang
                         </button>
@@ -1278,7 +1278,7 @@ export default function WorkspacePage() {
             {/* ================= STEP 0: LOADING SCREEN ================= */}
             {currentStep === 0 && (
               <div className="py-20 text-center animate-step-enter">
-                <div className="w-10 h-10 border-3 border-white/10 border-t-primary-hover rounded-full animate-spin mx-auto mb-4" />
+                <div className="w-10 h-10 border-3 border-white/10 border-t-primary-light rounded-full animate-spin mx-auto mb-4" />
                 <h2 className="text-lg font-bold text-white mb-1">{loadingText}</h2>
                 <p className="text-xs text-muted">9router AI sedang menyusun spesifikasi dokumen PRD 14 Bab & Roadmap.</p>
               </div>
@@ -1289,7 +1289,7 @@ export default function WorkspacePage() {
               <div className="animate-step-enter">
                 <div className="flex justify-between items-center mb-1">
                   <h1 className="text-2xl font-bold text-white tracking-tight">Studio PRD & Roadmap</h1>
-                  <span className="text-[11px] bg-primary/20 text-indigo-300 font-semibold px-2 py-0.5 rounded">
+                  <span className="text-[11px] bg-white/[0.04] text-muted font-semibold px-2 py-0.5 rounded border border-border">
                     Draf v{activePrd.version}
                   </span>
                 </div>
@@ -1304,7 +1304,7 @@ export default function WorkspacePage() {
                     value={revisionInput}
                     onChange={(e) => setRevisionInput(e.target.value)}
                     placeholder="misal: Prioritaskan integrasi payment gateway di Sprint 1, tambah alur refund..."
-                    className="flex-1 px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+                    className="flex-1 px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
                     onKeyDown={(e) => e.key === "Enter" && handleRevise()}
                   />
                   <button
@@ -1337,7 +1337,7 @@ export default function WorkspacePage() {
                     onClick={() => setActiveStudioTab("doc")}
                     className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                       activeStudioTab === "doc"
-                        ? "bg-primary text-white shadow-md shadow-indigo-600/20"
+                        ? "bg-primary text-white  "
                         : "text-muted hover:text-white hover:bg-bg-surface"
                     }`}
                   >
@@ -1348,7 +1348,7 @@ export default function WorkspacePage() {
                     onClick={() => setActiveStudioTab("flows")}
                     className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                       activeStudioTab === "flows"
-                        ? "bg-primary text-white shadow-md shadow-indigo-600/20"
+                        ? "bg-primary text-white  "
                         : "text-muted hover:text-white hover:bg-bg-surface"
                     }`}
                   >
@@ -1359,7 +1359,7 @@ export default function WorkspacePage() {
                     onClick={() => setActiveStudioTab("roadmap")}
                     className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                       activeStudioTab === "roadmap"
-                        ? "bg-primary text-white shadow-md shadow-indigo-600/20"
+                        ? "bg-primary text-white  "
                         : "text-muted hover:text-white hover:bg-bg-surface"
                     }`}
                   >
@@ -1369,7 +1369,7 @@ export default function WorkspacePage() {
 
                 {/* TAB 1: FULL PRD MARKDOWN */}
                 {activeStudioTab === "doc" && (
-                  <div className="bg-bg-surface border border-border rounded-xl p-6 shadow-lg animate-step-enter">
+                  <div className="bg-bg-surface border border-border rounded-xl p-6 animate-step-enter">
                     <MarkdownRenderer content={activePrd.content_markdown} />
                   </div>
                 )}
@@ -1415,7 +1415,7 @@ export default function WorkspacePage() {
                                 <span className="w-5 h-5 rounded-full bg-bg-input border border-border flex items-center justify-center font-bold text-[10px] text-white flex-shrink-0 mt-0.5">
                                   {sIdx + 1}
                                 </span>
-                                <div className="p-2.5 bg-bg-input border border-border rounded-lg flex-1 leading-relaxed text-slate-200">
+                                <div className="p-2.5 bg-bg-input border border-border rounded-lg flex-1 leading-relaxed text-ink">
                                   {step}
                                 </div>
                               </div>
@@ -1463,10 +1463,10 @@ export default function WorkspacePage() {
                             <div>
                               <div className="text-sm font-bold text-white">{phase.phaseTitle}</div>
                               {phase.timeline && (
-                                <div className="text-xs text-indigo-400 font-medium mt-0.5">{phase.timeline}</div>
+                                <div className="text-xs text-muted font-medium mt-0.5">{phase.timeline}</div>
                               )}
                             </div>
-                            <span className="text-[10px] px-2 py-0.5 bg-primary/20 text-indigo-300 rounded font-semibold border border-primary/30">
+                            <span className="text-[10px] px-2 py-0.5 bg-white/[0.04] text-muted rounded font-semibold border border-border">
                               Fase {pIdx + 1}
                             </span>
                           </div>
@@ -1481,7 +1481,7 @@ export default function WorkspacePage() {
                                 {phase.milestones.map((m, mIdx) => (
                                   <span
                                     key={mIdx}
-                                    className="flex-shrink-0 text-[11px] px-2.5 py-1 bg-white/5 border border-border rounded-md text-slate-300"
+                                    className="flex-shrink-0 text-[11px] px-2.5 py-1 bg-white/5 border border-border rounded-md text-ink-soft"
                                   >
                                     {m}
                                   </span>
@@ -1502,7 +1502,7 @@ export default function WorkspacePage() {
                                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${t.done ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
                                   {t.done ? "Selesai" : "Proses"}
                                 </span>
-                                <span className={t.done ? "line-through text-dim" : "text-slate-200"}>
+                                <span className={t.done ? "line-through text-dim" : "text-ink"}>
                                   {t.task}
                                 </span>
                               </div>
@@ -1536,10 +1536,10 @@ export default function WorkspacePage() {
                       </button>
 
                       {exportDropdownOpenStep3 && (
-                        <div className="absolute left-0 bottom-full mb-1.5 w-56 bg-[#11131d] border border-border rounded-xl shadow-2xl p-1.5 z-30 animate-scale-in flex flex-col gap-0.5">
+                        <div className="absolute left-0 bottom-full mb-1.5 w-56 bg-[#161617] border border-border rounded-xl p-1.5 z-30 animate-scale-in flex flex-col gap-0.5">
                           <button
                             onClick={() => { copyToClipboard(); setExportDropdownOpenStep3(false); }}
-                            className="w-full px-3 py-2 text-left text-xs text-slate-200 hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors"
+                            className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors"
                           >
                             <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -1549,9 +1549,9 @@ export default function WorkspacePage() {
                           </button>
                           <button
                             onClick={() => { setShareModalOpen(true); setExportDropdownOpenStep3(false); }}
-                            className="w-full px-3 py-2 text-left text-xs text-indigo-300 hover:text-indigo-200 hover:bg-indigo-950/40 rounded-lg flex items-center gap-2 transition-colors font-medium"
+                            className="w-full px-3 py-2 text-left text-xs text-primary-light hover:bg-white/[0.04] rounded-lg flex items-center gap-2 transition-colors font-medium"
                           >
-                            <svg className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg className="w-3.5 h-3.5 text-primary-light flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <circle cx="18" cy="5" r="3" />
                               <circle cx="6" cy="12" r="3" />
                               <circle cx="18" cy="19" r="3" />
@@ -1562,7 +1562,7 @@ export default function WorkspacePage() {
                           </button>
                           <button
                             onClick={() => { downloadMarkdown(); setExportDropdownOpenStep3(false); }}
-                            className="w-full px-3 py-2 text-left text-xs text-slate-200 hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors"
+                            className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors"
                           >
                             <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -1573,7 +1573,7 @@ export default function WorkspacePage() {
                           </button>
                           <button
                             onClick={() => { window.print(); setExportDropdownOpenStep3(false); }}
-                            className="w-full px-3 py-2 text-left text-xs text-slate-200 hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors"
+                            className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors"
                           >
                             <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="6 9 6 2 18 2 18 9" />
@@ -1588,7 +1588,7 @@ export default function WorkspacePage() {
                   </div>
                   <button
                     onClick={handleFinalize}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-all shadow-lg shadow-indigo-600/20"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-all"
                   >
                     Simpan & Finalkan Dokumen →
                   </button>
@@ -1622,7 +1622,7 @@ export default function WorkspacePage() {
                   <div className="relative dropdown-export-container">
                     <button
                       onClick={() => setExportDropdownOpenStep4(!exportDropdownOpenStep4)}
-                      className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/20"
+                      className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-all flex items-center gap-2"
                     >
                       <span>Ekspor & Bagikan</span>
                       <svg className={`w-3.5 h-3.5 transition-transform ${exportDropdownOpenStep4 ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1631,10 +1631,10 @@ export default function WorkspacePage() {
                     </button>
 
                     {exportDropdownOpenStep4 && (
-                      <div className="absolute right-0 top-full mt-1.5 w-56 bg-[#11131d] border border-border rounded-xl shadow-2xl p-1.5 z-30 animate-scale-in flex flex-col gap-0.5">
+                      <div className="absolute right-0 top-full mt-1.5 w-56 bg-[#161617] border border-border rounded-xl p-1.5 z-30 animate-scale-in flex flex-col gap-0.5">
                         <button
                           onClick={() => { copyToClipboard(); setExportDropdownOpenStep4(false); }}
-                          className="w-full px-3 py-2 text-left text-xs text-slate-200 hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2.5 transition-colors"
+                          className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2.5 transition-colors"
                         >
                           <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -1644,9 +1644,9 @@ export default function WorkspacePage() {
                         </button>
                         <button
                           onClick={() => { setShareModalOpen(true); setExportDropdownOpenStep4(false); }}
-                          className="w-full px-3 py-2 text-left text-xs text-indigo-300 hover:text-indigo-200 hover:bg-indigo-950/40 rounded-lg flex items-center gap-2.5 transition-colors font-medium"
+                          className="w-full px-3 py-2 text-left text-xs text-primary-light hover:bg-white/[0.04] rounded-lg flex items-center gap-2.5 transition-colors font-medium"
                         >
-                          <svg className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg className="w-3.5 h-3.5 text-primary-light flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="18" cy="5" r="3" />
                             <circle cx="6" cy="12" r="3" />
                             <circle cx="18" cy="19" r="3" />
@@ -1657,7 +1657,7 @@ export default function WorkspacePage() {
                         </button>
                         <button
                           onClick={() => { downloadMarkdown(); setExportDropdownOpenStep4(false); }}
-                          className="w-full px-3 py-2 text-left text-xs text-slate-200 hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2.5 transition-colors"
+                          className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2.5 transition-colors"
                         >
                           <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -1668,7 +1668,7 @@ export default function WorkspacePage() {
                         </button>
                         <button
                           onClick={() => { window.print(); setExportDropdownOpenStep4(false); }}
-                          className="w-full px-3 py-2 text-left text-xs text-slate-200 hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2.5 transition-colors"
+                          className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2.5 transition-colors"
                         >
                           <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="6 9 6 2 18 2 18 9" />
@@ -1689,7 +1689,7 @@ export default function WorkspacePage() {
                     onClick={() => setActiveStudioTab("doc")}
                     className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                       activeStudioTab === "doc"
-                        ? "bg-primary text-white shadow-md shadow-indigo-600/20"
+                        ? "bg-primary text-white  "
                         : "text-muted hover:text-white hover:bg-bg-surface"
                     }`}
                   >
@@ -1700,7 +1700,7 @@ export default function WorkspacePage() {
                     onClick={() => setActiveStudioTab("flows")}
                     className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                       activeStudioTab === "flows"
-                        ? "bg-primary text-white shadow-md shadow-indigo-600/20"
+                        ? "bg-primary text-white  "
                         : "text-muted hover:text-white hover:bg-bg-surface"
                     }`}
                   >
@@ -1711,7 +1711,7 @@ export default function WorkspacePage() {
                     onClick={() => setActiveStudioTab("roadmap")}
                     className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                       activeStudioTab === "roadmap"
-                        ? "bg-primary text-white shadow-md shadow-indigo-600/20"
+                        ? "bg-primary text-white  "
                         : "text-muted hover:text-white hover:bg-bg-surface"
                     }`}
                   >
@@ -1720,7 +1720,7 @@ export default function WorkspacePage() {
                 </div>
 
                 {activeStudioTab === "doc" && (
-                  <div className="bg-bg-surface border border-border rounded-xl p-6 shadow-lg animate-step-enter">
+                  <div className="bg-bg-surface border border-border rounded-xl p-6 animate-step-enter">
                     <MarkdownRenderer content={activePrd.content_markdown} />
                   </div>
                 )}
@@ -1765,7 +1765,7 @@ export default function WorkspacePage() {
                                 <span className="w-5 h-5 rounded-full bg-bg-input border border-border flex items-center justify-center font-bold text-[10px] text-white flex-shrink-0 mt-0.5">
                                   {sIdx + 1}
                                 </span>
-                                <div className="p-2.5 bg-bg-input border border-border rounded-lg flex-1 leading-relaxed text-slate-200">
+                                <div className="p-2.5 bg-bg-input border border-border rounded-lg flex-1 leading-relaxed text-ink">
                                   {step}
                                 </div>
                               </div>
@@ -1812,7 +1812,7 @@ export default function WorkspacePage() {
                             <div>
                               <div className="text-sm font-bold text-white">{phase.phaseTitle}</div>
                               {phase.timeline && (
-                                <div className="text-xs text-indigo-400 font-medium mt-0.5">{phase.timeline}</div>
+                                <div className="text-xs text-muted font-medium mt-0.5">{phase.timeline}</div>
                               )}
                             </div>
                             <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-semibold border border-emerald-500/30">
@@ -1829,7 +1829,7 @@ export default function WorkspacePage() {
                                 {phase.milestones.map((m, mIdx) => (
                                   <span
                                     key={mIdx}
-                                    className="flex-shrink-0 text-[11px] px-2.5 py-1 bg-white/5 border border-border rounded-md text-slate-300"
+                                    className="flex-shrink-0 text-[11px] px-2.5 py-1 bg-white/5 border border-border rounded-md text-ink-soft"
                                   >
                                     {m}
                                   </span>
@@ -1847,7 +1847,7 @@ export default function WorkspacePage() {
                                 <svg className="w-3 h-3 text-emerald-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                   <polyline points="20 6 9 17 4 12" />
                                 </svg>
-                                <span className="text-slate-200">{t.task}</span>
+                                <span className="text-ink">{t.task}</span>
                               </div>
                             ))}
                           </div>
@@ -1874,7 +1874,7 @@ export default function WorkspacePage() {
 
       {/* TOAST NOTIFICATION */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 bg-[#161928] border border-emerald-500/50 text-white px-4 py-2.5 rounded-lg text-xs font-medium shadow-2xl z-50 animate-scale-in">
+        <div className="fixed bottom-6 right-6 bg-[#1D1D1F] border border-emerald-500/50 text-white px-4 py-2.5 rounded-lg text-xs font-medium z-50 animate-scale-in">
           {toastMsg}
         </div>
       )}

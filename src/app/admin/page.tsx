@@ -772,7 +772,7 @@ export default function AdminPage() {
   if (!isAdmin) return null;
 
   return (
-    <div className="flex-1 flex flex-col min-h-[calc(100vh-56px)] bg-[#090a0f] animate-page-enter">
+    <div className="flex-1 flex flex-col min-h-[calc(100vh-56px)] bg-[#0E0E0F] animate-page-enter">
       
       {/* TOPBAR ADMIN */}
       <header className="h-14 bg-bg-surface border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
@@ -790,8 +790,8 @@ export default function AdminPage() {
             </svg>
           </button>
           <Link href="/" className="text-white font-bold text-sm tracking-tight flex items-center gap-1.5">
-            PRD<span className="text-primary-hover">Gen</span>
-            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-medium border border-indigo-500/30">
+            PRD<span className="text-primary-light">Gen</span>
+            <span className="text-[10px] bg-primary/20 text-primary-light px-1.5 py-0.5 rounded font-medium border border-primary-light/25">
               Admin
             </span>
           </Link>
@@ -816,7 +816,7 @@ export default function AdminPage() {
 
         {/* SIDEBAR ADMIN */}
         <aside
-          className={`w-60 bg-[#0d0f18] border-r border-border p-3 flex flex-col gap-1 flex-shrink-0 z-50 fixed md:static top-14 bottom-0 transition-transform duration-200 ${
+          className={`w-60 bg-[#121213] border-r border-border p-3 flex flex-col gap-1 flex-shrink-0 z-50 fixed md:static top-14 bottom-0 transition-transform duration-200 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
         >
@@ -903,7 +903,7 @@ export default function AdminPage() {
                     <div className="text-2xl font-bold text-white">
                       {users.reduce((sum, u) => sum + (u.prd_count || 0), 0)}
                     </div>
-                    <div className="text-[11px] text-indigo-400 mt-1">Akumulasi seluruh user</div>
+                    <div className="text-[11px] text-muted mt-1">Akumulasi seluruh user</div>
                   </div>
                   <div className="bg-bg-surface border border-border rounded-xl p-4">
                     <div className="text-xs text-muted mb-1">Transaksi Selesai</div>
@@ -1042,7 +1042,7 @@ export default function AdminPage() {
                             <td className="p-3 text-dim text-[11px]">{formatDateIndo(u.created_at)}</td>
                             <td className="p-3 text-right">
                               {u.role === "admin" ? (
-                                <span className="text-[10px] text-indigo-300 font-semibold px-2 py-1 bg-indigo-500/10 border border-indigo-500/30 rounded inline-block">
+                                <span className="text-[10px] text-primary-light font-semibold px-2 py-1 bg-primary/10 border border-primary-light/25 rounded inline-block">
                                   Admin Terproteksi
                                 </span>
                               ) : (
@@ -1117,7 +1117,7 @@ export default function AdminPage() {
 
                       {/* VIP Plan */}
                       <div className="p-3 bg-bg-input border border-border rounded-lg space-y-2">
-                        <div className="text-xs font-bold text-indigo-300">Paket VIP</div>
+                        <div className="text-xs font-bold text-ink">Paket VIP</div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="block text-[11px] text-muted mb-1">Bulanan (Rp)</label>
@@ -1370,10 +1370,10 @@ export default function AdminPage() {
                               <div className="font-semibold text-white">{t.profiles?.full_name || "Tanpa Nama"}</div>
                               <div className="text-[11px] text-dim">Email Akun: {t.profiles?.email || "-"}</div>
                               <div className="text-[11px] text-dim">Email Checkout: {t.customer_email || "-"}</div>
-                              <div className="text-[11px] text-indigo-300 font-mono">WA: {t.customer_phone || "-"}</div>
+                              <div className="text-[11px] text-muted font-mono">WA: {t.customer_phone || "-"}</div>
                             </td>
                             <td className="p-3">
-                              <div className="font-semibold text-indigo-300 uppercase text-[11px]">{t.plan}</div>
+                              <div className="font-semibold text-ink uppercase text-[11px]">{t.plan}</div>
                               <div className="text-[10px] text-dim capitalize">{t.billing_cycle === "yearly" ? "Tahunan" : "Bulanan"}</div>
                               {t.coupon_code && (
                                 <div className="text-[10px] text-emerald-400 mt-0.5">Kupon: {t.coupon_code}</div>
@@ -1404,7 +1404,7 @@ export default function AdminPage() {
                                   <button
                                     onClick={() => handleAdminCheckTxStatus(t.order_id, t.txn_id)}
                                     disabled={checkingTxnId === t.order_id || forcingId === t.order_id}
-                                    className="px-2.5 py-1 border border-primary/50 text-indigo-300 hover:bg-indigo-950/40 disabled:opacity-50 rounded text-[11px] font-medium transition-colors"
+                                    className="px-2.5 py-1 border border-border text-ink-soft hover:bg-white/[0.04] disabled:opacity-50 rounded text-[11px] font-medium transition-colors"
                                   >
                                     {checkingTxnId === t.order_id ? "Memeriksa..." : "Cek Status"}
                                   </button>
@@ -1582,7 +1582,7 @@ export default function AdminPage() {
                       <h2 className="text-sm font-semibold text-white mb-1">Konfigurasi Payment Gateway Pakasir</h2>
                       <p className="text-xs text-muted mb-4">
                         Kredensial QRIS disimpan aman di database server. Pastikan Webhook URL di dashboard Pakasir mengarah ke{" "}
-                        <span className="font-mono text-indigo-300">{window.location.origin}/api/payment/webhook</span>.
+                        <span className="font-mono text-ink-soft">{window.location.origin}/api/payment/webhook</span>.
                       </p>
                     </div>
                   </div>
@@ -1703,12 +1703,12 @@ export default function AdminPage() {
                             <td className="py-2.5 font-semibold text-white">
                               {m.name}{" "}
                               {m.is_default && (
-                                <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.2 rounded font-medium ml-1">
+                                <span className="text-[10px] bg-white/[0.04] text-muted px-1.5 py-0.2 rounded font-medium ml-1">
                                   Default
                                 </span>
                               )}
                             </td>
-                            <td className="py-2.5 font-mono text-[11px] text-indigo-300">{m.model_id}</td>
+                            <td className="py-2.5 font-mono text-[11px] text-muted">{m.model_id}</td>
                             <td className="py-2.5 text-muted">{m.provider}</td>
                             <td className="py-2.5 text-muted uppercase text-[11px]">{m.min_tier}</td>
                             <td className="py-2.5">
@@ -1797,7 +1797,7 @@ export default function AdminPage() {
                       logs.map((l, idx) => (
                         <li key={l.id || idx} className="p-3 bg-bg-input border border-border rounded-lg flex flex-col sm:flex-row justify-between gap-1">
                           <div>
-                            <span className="font-semibold text-indigo-300">{l.action}</span>
+                            <span className="font-semibold text-ink">{l.action}</span>
                             <div className="text-[11px] text-muted font-mono mt-0.5">
                               {JSON.stringify(l.details || {})}
                             </div>
@@ -1819,7 +1819,7 @@ export default function AdminPage() {
 
       {/* TOAST */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 bg-[#161928] border border-emerald-500/50 text-white px-4 py-2.5 rounded-lg text-xs font-medium shadow-2xl z-50 animate-fade-in">
+        <div className="fixed bottom-6 right-6 bg-[#1D1D1F] border border-emerald-500/50 text-white px-4 py-2.5 rounded-lg text-xs font-medium z-50 animate-fade-in">
           {toastMsg}
         </div>
       )}

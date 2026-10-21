@@ -361,8 +361,8 @@ export function QRISPaymentModal({
   };
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-scale-in">
-      <div className="relative w-full max-w-md bg-[#11131d] border border-border rounded-2xl p-6 md:p-7 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 animate-scale-in">
+      <div className="relative w-full max-w-md bg-[#161617] border border-border rounded-2xl p-6 md:p-7 overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header */}
         <div className="flex justify-between items-start pb-3.5 mb-4 border-b border-border">
@@ -371,7 +371,7 @@ export function QRISPaymentModal({
               {stage === "form" ? "Konfirmasi Pemesanan" : "Pembayaran QRIS"}
             </h3>
             <p className="text-xs text-muted mt-0.5">
-              Paket <span className="text-indigo-300 font-semibold uppercase">{selectedPlan}</span> &bull; {billingCycle === "yearly" ? "Tahunan (Diskon 20%)" : "Bulanan"}
+              Paket <span className="text-ink font-semibold uppercase">{selectedPlan}</span> &bull; {billingCycle === "yearly" ? "Tahunan (Diskon 20%)" : "Bulanan"}
             </p>
             {stage === "qris" && qrisData?.isSandbox && (
               <div className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded">
@@ -413,7 +413,7 @@ export function QRISPaymentModal({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@email.com"
-                className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+                className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
               />
               <p className="text-[10px] text-dim mt-1">Invoice dan detail transaksi akan dikirimkan ke email ini.</p>
             </div>
@@ -430,7 +430,7 @@ export function QRISPaymentModal({
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
                 placeholder="misal: 081234567890"
-                className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors font-mono"
+                className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors font-mono"
               />
               <p className="text-[10px] text-dim mt-1">Untuk konfirmasi pembayaran otomatis dan dukungan layanan.</p>
             </div>
@@ -464,7 +464,7 @@ export function QRISPaymentModal({
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     placeholder="misal: HEMAT20"
-                    className="flex-1 px-3 py-2 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none uppercase font-mono"
+                    className="flex-1 px-3 py-2 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none uppercase font-mono"
                   />
                   <button
                     type="button"
@@ -498,7 +498,7 @@ export function QRISPaymentModal({
 
               <div className="pt-2 mt-2 border-t border-border flex justify-between items-baseline font-bold">
                 <span className="text-white text-xs">Total Pembayaran:</span>
-                <span className="text-base text-primary-hover font-mono">
+                <span className="text-base text-ink font-mono">
                   Rp {formatRupiah(currentTotalAmount)}
                 </span>
               </div>
@@ -516,7 +516,7 @@ export function QRISPaymentModal({
               <button
                 type="submit"
                 disabled={creatingQris}
-                className="flex-[2] py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-600/25"
+                className="flex-[2] py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-colors"
               >
                 {creatingQris ? "Menyiapkan QRIS..." : "Lanjut ke Pembayaran QRIS →"}
               </button>
@@ -538,7 +538,7 @@ export function QRISPaymentModal({
                 <div>
                   <h4 className="text-base font-bold text-white mb-1">Pembayaran Berhasil Diterima!</h4>
                   <p className="text-xs text-muted max-w-xs mx-auto">
-                    Paket akun Anda telah aktif sebagai <strong className="text-indigo-300 uppercase">{qrisData.plan}</strong>.
+                    Paket akun Anda telah aktif sebagai <strong className="text-ink uppercase">{qrisData.plan}</strong>.
                   </p>
                 </div>
                 <div className="pt-2">
@@ -547,7 +547,7 @@ export function QRISPaymentModal({
                       onClose();
                       window.location.href = "/app";
                     }}
-                    className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-600/30"
+                    className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-xl transition-colors"
                   >
                     Buka Workspace Sekarang →
                   </button>
@@ -595,7 +595,7 @@ export function QRISPaymentModal({
                 </div>
 
                 {/* QR Code Image Container */}
-                <div className="flex flex-col items-center justify-center p-3.5 bg-white rounded-xl shadow-inner">
+                <div className="flex flex-col items-center justify-center p-3.5 bg-white rounded-xl">
                   {qrDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -604,11 +604,11 @@ export function QRISPaymentModal({
                       className="w-52 h-52 object-contain"
                     />
                   ) : (
-                    <div className="w-52 h-52 flex items-center justify-center text-xs text-slate-500 font-mono">
+                    <div className="w-52 h-52 flex items-center justify-center text-xs text-[#4A4742] font-mono">
                       Memuat QRIS...
                     </div>
                   )}
-                  <div className="text-[9px] text-slate-600 font-bold uppercase tracking-wider mt-1">
+                  <div className="text-[9px] text-[#4A4742] font-bold uppercase tracking-wider mt-1">
                     QRIS &bull; GPN &bull; Bank Indonesia
                   </div>
                 </div>
@@ -629,7 +629,7 @@ export function QRISPaymentModal({
                         navigator.clipboard.writeText(qrisData.orderId);
                         setManualStatusMsg("Order ID disalin.");
                       }}
-                      className="font-mono text-indigo-300 hover:text-indigo-200 truncate"
+                      className="font-mono text-primary-light truncate"
                       title="Klik untuk menyalin"
                     >
                       {qrisData.orderId}
@@ -638,7 +638,7 @@ export function QRISPaymentModal({
                   {qrisData.txnId && (
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-dim shrink-0">TXN ID</span>
-                      <span className="font-mono text-indigo-300 truncate">{qrisData.txnId}</span>
+                      <span className="font-mono text-ink-soft truncate">{qrisData.txnId}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between gap-2">
@@ -659,7 +659,7 @@ export function QRISPaymentModal({
                 )}
 
                 {manualStatusMsg && (
-                  <div className="p-2.5 bg-indigo-950/30 border border-indigo-500/30 text-indigo-300 text-xs rounded-lg text-center">
+                  <div className="p-2.5 bg-white/[0.04] border border-border text-ink-soft text-xs rounded-lg text-center">
                     {manualStatusMsg}
                   </div>
                 )}

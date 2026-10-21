@@ -84,7 +84,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className="dark">
-      <body className={`${inter.className} bg-[#090a0f] text-[#f1f5f9] min-h-screen flex flex-col`}>
+      <body className={`${inter.className} bg-[#0E0E0F] text-[#F2F0EB] min-h-screen flex flex-col`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}

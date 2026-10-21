@@ -63,7 +63,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex-1 flex items-center justify-center p-4 animate-page-enter">
-      <div className="w-full max-w-[380px] bg-bg-surface border border-border rounded-xl p-6 md:p-8 shadow-2xl">
+      <div className="w-full max-w-[380px] bg-bg-surface border border-border rounded-xl p-6 md:p-8">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-white mb-1 tracking-tight">Masuk ke akun</h1>
           <p className="text-xs text-muted">Buka riwayat dan lanjutkan pembuatan PRD Anda.</p>
@@ -93,7 +93,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="nama@email.com"
-              className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+              className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
             />
           </div>
 
@@ -104,7 +104,7 @@ export default function LoginPage() {
               </label>
               <Link
                 href="/forgot-password"
-                className="text-[11px] text-indigo-400 hover:text-indigo-300 hover:underline transition-colors"
+                className="text-[11px] text-primary-light hover:underline transition-colors"
               >
                 Lupa sandi?
               </Link>
@@ -116,7 +116,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-hover rounded-lg text-white text-xs outline-none transition-colors"
+              className="w-full px-3 py-2 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
             />
           </div>
 
@@ -144,7 +144,7 @@ export default function LoginPage() {
 
         <div className="mt-6 text-center text-xs text-muted">
           Belum punya akun?{" "}
-          <Link href="/register" className="text-indigo-400 font-medium hover:underline">
+          <Link href="/register" className="text-primary-light font-medium hover:underline">
             Daftar gratis di sini
           </Link>
         </div>

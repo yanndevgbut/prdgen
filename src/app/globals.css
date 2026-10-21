@@ -3,20 +3,20 @@
 @tailwind utilities;
 
 :root {
-  --bg: #090a0f;
-  --surface: #11131d;
-  --surface-hover: #171926;
-  --surface-input: #151724;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-active: rgba(99, 102, 241, 0.5);
-  --primary: #4f46e5;
-  --primary-hover: #6366f1;
-  --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
+  --bg: #0E0E0F;
+  --surface: #161617;
+  --surface-hover: #1D1D1F;
+  --surface-input: #1A1A1C;
+  --border: #2A2A2D;
+  --border-active: rgba(229, 72, 77, 0.45);
+  --primary: #B23A32;
+  --primary-hover: #C0392B;
+  --text: #F2F0EB;
+  --text-muted: #B4B0A9;
+  --text-dim: #8A867F;
+  --success: #5BD6A2;
+  --danger: #FF5C5C;
+  --warning: #F2C14E;
 }
 
 body {
@@ -36,11 +36,11 @@ body {
   background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e2238;
+  background: #2A2A2D;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2d3354;
+  background: #4A4742;
 }
 
 /* Swipeable Horizontal Container */

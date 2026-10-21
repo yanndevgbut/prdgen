@@ -25,16 +25,16 @@ export function renderOTPEmailHtml(params: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kode Verifikasi Akun PRDGen</title>
 </head>
-<body style="margin:0; padding:0; background-color:#090a0f; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif; color:#f1f5f9; -webkit-font-smoothing:antialiased;">
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#090a0f; padding:40px 20px;">
+<body style="margin:0; padding:0; background-color:#0E0E0F; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif; color:#F2F0EB; -webkit-font-smoothing:antialiased;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#0E0E0F; padding:40px 20px;">
     <tr>
       <td align="center">
-        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:520px; background-color:#11131d; border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:36px 32px; text-align:left;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:520px; background-color:#161617; border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:36px 32px; text-align:left;">
           
           <!-- Brand Logo Header -->
           <tr>
             <td style="padding-bottom:24px; border-bottom:1px solid rgba(255,255,255,0.08);">
-              <span style="font-size:22px; font-weight:800; color:#ffffff; letter-spacing:-0.5px;">PRD<span style="color:#6366f1;">Gen</span></span>
+              <span style="font-size:22px; font-weight:800; color:#ffffff; letter-spacing:-0.5px;">PRD<span style="color:#FF8A8A;">Gen</span></span>
             </td>
           </tr>
 
@@ -54,8 +54,8 @@ export function renderOTPEmailHtml(params: {
           <!-- OTP Box Card -->
           <tr>
             <td align="center" style="padding:4px 0 28px 0;">
-              <div style="background-color:#151724; border:1.5px solid #4f46e5; border-radius:10px; padding:18px 28px; display:inline-block;">
-                <span style="font-family:'Courier New', Courier, monospace; font-size:36px; font-weight:800; letter-spacing:10px; color:#818cf8;">${params.otpCode}</span>
+              <div style="background-color:#1A1A1C; border:1.5px solid #B23A32; border-radius:10px; padding:18px 28px; display:inline-block;">
+                <span style="font-family:'Courier New', Courier, monospace; font-size:36px; font-weight:800; letter-spacing:10px; color:#FF8A8A;">${params.otpCode}</span>
               </div>
             </td>
           </tr>
@@ -149,16 +149,16 @@ export function renderResetPasswordEmailHtml(params: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reset Kata Sandi Akun PRDGen</title>
 </head>
-<body style="margin:0; padding:0; background-color:#090a0f; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif; color:#f1f5f9; -webkit-font-smoothing:antialiased;">
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#090a0f; padding:40px 20px;">
+<body style="margin:0; padding:0; background-color:#0E0E0F; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif; color:#F2F0EB; -webkit-font-smoothing:antialiased;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#0E0E0F; padding:40px 20px;">
     <tr>
       <td align="center">
-        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:520px; background-color:#11131d; border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:36px 32px; text-align:left;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:520px; background-color:#161617; border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:36px 32px; text-align:left;">
           
           <!-- Brand Logo Header -->
           <tr>
             <td style="padding-bottom:24px; border-bottom:1px solid rgba(255,255,255,0.08);">
-              <span style="font-size:22px; font-weight:800; color:#ffffff; letter-spacing:-0.5px;">PRD<span style="color:#6366f1;">Gen</span></span>
+              <span style="font-size:22px; font-weight:800; color:#ffffff; letter-spacing:-0.5px;">PRD<span style="color:#FF8A8A;">Gen</span></span>
             </td>
           </tr>
 
@@ -178,8 +178,8 @@ export function renderResetPasswordEmailHtml(params: {
           <!-- OTP Box Card -->
           <tr>
             <td align="center" style="padding:4px 0 28px 0;">
-              <div style="background-color:#151724; border:1.5px solid #4f46e5; border-radius:10px; padding:18px 28px; display:inline-block;">
-                <span style="font-family:'Courier New', Courier, monospace; font-size:36px; font-weight:800; letter-spacing:10px; color:#818cf8;">${params.otpCode}</span>
+              <div style="background-color:#1A1A1C; border:1.5px solid #B23A32; border-radius:10px; padding:18px 28px; display:inline-block;">
+                <span style="font-family:'Courier New', Courier, monospace; font-size:36px; font-weight:800; letter-spacing:10px; color:#FF8A8A;">${params.otpCode}</span>
               </div>
             </td>
           </tr>

@@ -11,22 +11,26 @@ const config: Config = {
     extend: {
       colors: {
         bg: {
-          DEFAULT: "#090a0f",
-          surface: "#11131d",
-          hover: "#171926",
-          input: "#151724",
+          DEFAULT: "#0E0E0F",
+          surface: "#161617",
+          hover: "#1D1D1F",
+          input: "#1A1A1C",
         },
         primary: {
-          DEFAULT: "#4f46e5",
-          hover: "#6366f1",
-          light: "#818cf8",
+          DEFAULT: "#B23A32",
+          hover: "#C0392B",
+          light: "#FF8A8A",
         },
         border: {
-          DEFAULT: "rgba(255, 255, 255, 0.08)",
-          active: "rgba(99, 102, 241, 0.5)",
+          DEFAULT: "#2A2A2D",
+          active: "rgba(229, 72, 77, 0.45)",
         },
-        muted: "#94a3b8",
-        dim: "#64748b",
+        ink: {
+          DEFAULT: "#F2F0EB",
+          soft: "#D8D2C7",
+        },
+        muted: "#B4B0A9",
+        dim: "#8A867F",
       },
       fontFamily: {
         sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
