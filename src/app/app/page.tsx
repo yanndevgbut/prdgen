@@ -1070,31 +1070,6 @@ export default function WorkspacePage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div
-                    onClick={() => setMode("ai")}
-                    className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
-                      mode === "ai"
-                        ? "bg-[#1A1A1C] border-primary-light/50"
-                        : "bg-bg-input border-border hover:border-text-dim"
-                    }`}
-                  >
-                    <div className="flex gap-2.5 items-start">
-                      <input
-                        type="radio"
-                        name="mode"
-                        checked={mode === "ai"}
-                        onChange={() => setMode("ai")}
-                        className="mt-0.5 accent-primary cursor-pointer"
-                      />
-                      <div>
-                        <div className="text-xs font-semibold text-white">Tanya Jawab AI</div>
-                        <div className="text-[11px] text-muted leading-tight mt-0.5">
-                          AI menganalisis ide produk dan memberikan opsi rekomendasi instan.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
                     onClick={() => setMode("manual")}
                     className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
                       mode === "manual"
@@ -1114,6 +1089,31 @@ export default function WorkspacePage() {
                         <div className="text-xs font-semibold text-white">Isi Sendiri</div>
                         <div className="text-[11px] text-muted leading-tight mt-0.5">
                           Pertanyaan disesuaikan dengan produk, diisi manual secara bebas.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setMode("ai")}
+                    className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
+                      mode === "ai"
+                        ? "bg-[#1A1A1C] border-primary-light/50"
+                        : "bg-bg-input border-border hover:border-text-dim"
+                    }`}
+                  >
+                    <div className="flex gap-2.5 items-start">
+                      <input
+                        type="radio"
+                        name="mode"
+                        checked={mode === "ai"}
+                        onChange={() => setMode("ai")}
+                        className="mt-0.5 accent-primary cursor-pointer"
+                      />
+                      <div>
+                        <div className="text-xs font-semibold text-white">Tanya Jawab AI</div>
+                        <div className="text-[11px] text-muted leading-tight mt-0.5">
+                          AI menganalisis ide produk dan memberikan opsi rekomendasi instan.
                         </div>
                       </div>
                     </div>
