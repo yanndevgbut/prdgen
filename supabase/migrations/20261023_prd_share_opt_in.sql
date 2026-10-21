@@ -8,6 +8,8 @@
 -- Jalankan setelah kode baru (yang memeriksa is_public) selesai di-deploy.
 -- ==============================================================================
 
+BEGIN;
+
 ALTER TABLE public.prds
     ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT false;
 
@@ -18,3 +20,5 @@ CREATE INDEX IF NOT EXISTS idx_prds_public
 -- Share viewer dan raw endpoint membaca data lewat service role dengan filter
 -- is_public = true. Tidak ada policy anon baru agar tabel prds tidak bisa
 -- di-query langsung dari Supabase REST.
+
+COMMIT;

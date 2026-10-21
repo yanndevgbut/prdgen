@@ -13,6 +13,8 @@
 --    yang boleh membuat user.
 -- ==============================================================================
 
+BEGIN;
+
 -- ------------------------------------------------------------------------------
 -- 1. Satu model AI default
 -- ------------------------------------------------------------------------------
@@ -124,3 +126,5 @@ FOR EACH ROW EXECUTE FUNCTION public.enforce_verified_signup();
 -- handle_new_user(). Setelah migration ini, hanya user yang dibuat server
 -- dengan app_metadata.prdgen_verified=true yang bisa masuk ke trigger tersebut.
 -- Pastikan akun owner dibuat/di-promote lebih dulu sebelum membuka akses publik.
+
+COMMIT;
