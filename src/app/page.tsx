@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Footer } from "@/components/footer";
 
 export const metadata: Metadata = {
-  title: "PrdGen — Buat PRD Tanpa Ribet dengan AI",
+  title: "PrdGen | Buat PRD Tanpa Ribet dengan AI",
   description:
     "Create PRD / buat dokumen Product Requirements Document (PRD) otomatis dan terstruktur dengan AI. Web bikin PRD tanpa ribet, siap dibagikan ke tim developer.",
   keywords: [

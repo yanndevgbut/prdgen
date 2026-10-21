@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: SharePageProps) {
     .single();
 
   return {
-    title: prd ? `${prd.title} — PRDGen` : "Dokumen PRD — PRDGen",
+    title: prd ? `${prd.title} | PRDGen` : "Dokumen PRD | PRDGen",
     description: "Product Requirements Document (PRD) yang dihasilkan oleh PRDGen AI.",
     robots: {
       index: false,

@@ -294,7 +294,7 @@ export default function RegisterPage() {
               <div className="p-3.5 bg-bg-input border border-border rounded-xl">
                 <div className="text-xs font-semibold text-white">Paket Awal</div>
                 <div className="text-[11px] text-muted mt-1 leading-relaxed">
-                  Trial Gratis — 3 dokumen PRD. Upgrade kapan saja lewat halaman
+                  Trial Gratis: 3 dokumen PRD. Upgrade kapan saja lewat halaman
                   Harga setelah akun kamu aktif.
                 </div>
               </div>

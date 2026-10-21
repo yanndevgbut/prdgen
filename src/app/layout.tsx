@@ -10,7 +10,7 @@ const siteUrl = "https://prdgen.my.id";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "PrdGen — Buat PRD Tanpa Ribet dengan AI",
+  title: "PrdGen | Buat PRD Tanpa Ribet dengan AI",
   description:
     "Create PRD / buat dokumen Product Requirements Document (PRD) otomatis dan terstruktur dengan AI. Web bikin PRD tanpa ribet, siap dibagikan ke tim developer.",
   keywords: [
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: siteUrl,
-    title: "PrdGen — Buat PRD Tanpa Ribet dengan AI",
+    title: "PrdGen | Buat PRD Tanpa Ribet dengan AI",
     description:
       "Create PRD / buat dokumen Product Requirements Document (PRD) otomatis dan terstruktur dengan AI. Web bikin PRD tanpa ribet.",
     siteName: "PrdGen",
@@ -42,13 +42,13 @@ export const metadata: Metadata = {
         url: "/icon.png",
         width: 512,
         height: 512,
-        alt: "PrdGen — Buat PRD Tanpa Ribet",
+        alt: "PrdGen, Buat PRD Tanpa Ribet",
       },
     ],
   },
   twitter: {
     card: "summary",
-    title: "PrdGen — Buat PRD Tanpa Ribet dengan AI",
+    title: "PrdGen | Buat PRD Tanpa Ribet dengan AI",
     description:
       "Create PRD / buat dokumen PRD otomatis dengan AI. Web bikin PRD tanpa ribet.",
     images: ["/icon.png"],
