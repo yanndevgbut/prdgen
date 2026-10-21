@@ -97,7 +97,7 @@ export default function WorkspacePage() {
   const [historyList, setHistoryList] = useState<PRDRecord[]>([]);
   const [activePrd, setActivePrd] = useState<PRDRecord | null>(null);
 
-  // Stepper State (1: Input, 2: Q&A, 0: Generating/Loading, 3: Studio/Revisi, 4: Final)
+  // Stepper State (1: Input, 2: Mode, 3: Q&A, 4: Studio/Revisi, 5: Final, 0: Generating/Loading)
   const [currentStep, setCurrentStep] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -114,20 +114,20 @@ export default function WorkspacePage() {
   // Studio Sub-Tab View (doc, flows, roadmap)
   const [activeStudioTab, setActiveStudioTab] = useState<"doc" | "flows" | "roadmap">("doc");
   const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [exportDropdownOpenStep3, setExportDropdownOpenStep3] = useState(false);
-  const [exportDropdownOpenStep4, setExportDropdownOpenStep4] = useState(false);
+  const [exportDropdownOpenStudio, setExportDropdownOpenStudio] = useState(false);
+  const [exportDropdownOpenFinal, setExportDropdownOpenFinal] = useState(false);
 
-  // Form Step 1 (Clean slate - Empty by default)
+  // Form Step 1 (Clean slate - Empty by default) & Step 2 Mode
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [mode, setMode] = useState<"ai" | "manual">("ai");
 
-  // Dynamic Questions (Step 2) & Pagination
+  // Dynamic Questions (Step 3) & Pagination
   const [questions, setQuestions] = useState<DynamicQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [questionPage, setQuestionPage] = useState(1); // Page 1: Q 1-5, Page 2: Q 6-10
 
-  // Form Step 3 (Revision)
+  // Form Step 4 (Revision)
   const [revisionInput, setRevisionInput] = useState("");
 
   // Parsed Visual Views from Markdown
@@ -217,8 +217,8 @@ export default function WorkspacePage() {
     const handleGlobalClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest(".dropdown-export-container")) {
-        setExportDropdownOpenStep3(false);
-        setExportDropdownOpenStep4(false);
+        setExportDropdownOpenStudio(false);
+        setExportDropdownOpenFinal(false);
       }
       if (!target.closest(".dropdown-model-container")) {
         setModelDropdownOpen(false);
@@ -293,13 +293,18 @@ export default function WorkspacePage() {
     setDescription(preset.desc);
   };
 
-  // Navigating to Step 2: Fetch Tailored Dynamic Questions (5 to 10 questions)
-  const handleProceedToStep2 = async () => {
+  // Navigating to Step 2: Choose how to fill the PRD
+  const handleProceedToMode = () => {
     if (!title.trim() || !description.trim()) {
       alert("Harap isi nama dan deskripsi ide produk terlebih dahulu.");
       return;
     }
 
+    setCurrentStep(2);
+  };
+
+  // Navigating to Step 3: Fetch Tailored Dynamic Questions (5 to 10 questions)
+  const handleProceedToQuestions = async () => {
     if (!hasAvailableCredits) {
       setPromoModalOpen(true);
       showToast("Kredit harian kamu telah habis. Upgrade ke VIP untuk akses tanpa batas.");
@@ -308,7 +313,7 @@ export default function WorkspacePage() {
 
     setQuestionLoading(true);
     setQuestionPage(1);
-    setCurrentStep(2);
+    setCurrentStep(3);
 
     try {
       const res = await fetch("/api/ai/questions", {
@@ -495,12 +500,12 @@ export default function WorkspacePage() {
 
       setActivePrd(data.prd);
       setHistoryList((prev) => [data.prd, ...prev.filter((p) => p.id !== data.prd.id)]);
-      setCurrentStep(3);
+      setCurrentStep(4);
       setActiveStudioTab("doc");
       showToast("PRD 14 Bab & Roadmap berhasil dibuat oleh AI!");
     } catch (err: any) {
       alert(err.message || "Gagal membuat PRD.");
-      setCurrentStep(2);
+      setCurrentStep(3);
     } finally {
       setLoading(false);
     }
@@ -578,7 +583,7 @@ export default function WorkspacePage() {
       setHistoryList((prev) =>
         prev.map((p) => (p.id === data.id ? data : p))
       );
-      setCurrentStep(4);
+      setCurrentStep(5);
       showToast("Dokumen PRD telah difinalisasi!");
     } catch (err: any) {
       alert("Gagal memfinalisasi status PRD.");
@@ -591,9 +596,9 @@ export default function WorkspacePage() {
     setTitle(prd.title);
     setDescription(prd.description);
     if (prd.status === "final") {
-      setCurrentStep(4);
+      setCurrentStep(5);
     } else {
-      setCurrentStep(3);
+      setCurrentStep(4);
     }
     setActiveStudioTab("doc");
     setSidebarOpen(false);
@@ -832,7 +837,7 @@ export default function WorkspacePage() {
                     ? "scale-110"
                     : "opacity-75 hover:opacity-100"
                 }`}
-                title="Langkah 2: Tanya Jawab"
+                title="Langkah 2: Mode Pengisian"
               >
                 <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   currentStep === 2
@@ -845,13 +850,13 @@ export default function WorkspacePage() {
               <span className="text-dim font-bold">›</span>
 
               <div
-                onClick={() => activePrd && setCurrentStep(3)}
+                onClick={() => questions.length > 0 && setCurrentStep(3)}
                 className={`cursor-pointer transition-all ${
                   currentStep === 3
                     ? "scale-110"
                     : "opacity-75 hover:opacity-100"
                 }`}
-                title="Langkah 3: Studio & Revisi"
+                title="Langkah 3: Tanya Jawab"
               >
                 <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   currentStep === 3
@@ -870,13 +875,32 @@ export default function WorkspacePage() {
                     ? "scale-110"
                     : "opacity-75 hover:opacity-100"
                 }`}
-                title="Langkah 4: Selesai"
+                title="Langkah 4: Studio & Revisi"
               >
                 <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   currentStep === 4
                     ? "bg-primary text-white   ring-2 ring-primary-light/30"
+                    : currentStep > 4
+                    ? "bg-emerald-500 text-white"
                     : "bg-white/10 text-dim"
                 }`}>4</span>
+              </div>
+              <span className="text-dim font-bold">›</span>
+
+              <div
+                onClick={() => activePrd?.status === "final" && setCurrentStep(5)}
+                className={`cursor-pointer transition-all ${
+                  currentStep === 5
+                    ? "scale-110"
+                    : "opacity-75 hover:opacity-100"
+                }`}
+                title="Langkah 5: Selesai"
+              >
+                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                  currentStep === 5
+                    ? "bg-primary text-white   ring-2 ring-primary-light/30"
+                    : "bg-white/10 text-dim"
+                }`}>5</span>
               </div>
             </div>
 
@@ -1021,69 +1045,90 @@ export default function WorkspacePage() {
                       )}
                     </div>
                   </div>
+                </div>
 
-                  {/* MODE SELECTION */}
-                  <div>
-                    <label className="block text-xs font-semibold text-white mb-2">
-                      Pilihan Mode Pengisian
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div
-                        onClick={() => setMode("ai")}
-                        className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
-                          mode === "ai"
-                            ? "bg-[#1A1A1C] border-primary-light/50"
-                            : "bg-bg-input border-border hover:border-text-dim"
-                        }`}
-                      >
-                        <div className="flex gap-2.5 items-start">
-                          <input
-                            type="radio"
-                            name="mode"
-                            checked={mode === "ai"}
-                            onChange={() => setMode("ai")}
-                            className="mt-0.5 accent-primary cursor-pointer"
-                          />
-                          <div>
-                            <div className="text-xs font-semibold text-white">Tanya Jawab AI</div>
-                            <div className="text-[11px] text-muted leading-tight mt-0.5">
-                              AI menganalisis ide produk dan memberikan opsi rekomendasi instan.
-                            </div>
-                          </div>
+                <div className="flex justify-end mt-8 pt-4 border-t border-border">
+                  <button
+                    onClick={handleProceedToMode}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-all"
+                  >
+                    Lanjut ke Mode Pengisian →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ================= STEP 2: MODE PENGISIAN ================= */}
+            {currentStep === 2 && (
+              <div className="animate-step-enter">
+                <h1 className="text-2xl font-bold text-white tracking-tight mb-1">
+                  Pilih mode pengisian
+                </h1>
+                <p className="text-sm text-muted mb-6">
+                  Mode ini menentukan cara AI menyiapkan pertanyaan dan jawaban awal. Kamu bisa kembali ke langkah ini kapan saja.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setMode("ai")}
+                    className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
+                      mode === "ai"
+                        ? "bg-[#1A1A1C] border-primary-light/50"
+                        : "bg-bg-input border-border hover:border-text-dim"
+                    }`}
+                  >
+                    <div className="flex gap-2.5 items-start">
+                      <input
+                        type="radio"
+                        name="mode"
+                        checked={mode === "ai"}
+                        onChange={() => setMode("ai")}
+                        className="mt-0.5 accent-primary cursor-pointer"
+                      />
+                      <div>
+                        <div className="text-xs font-semibold text-white">Tanya Jawab AI</div>
+                        <div className="text-[11px] text-muted leading-tight mt-0.5">
+                          AI menganalisis ide produk dan memberikan opsi rekomendasi instan.
                         </div>
                       </div>
+                    </div>
+                  </div>
 
-                      <div
-                        onClick={() => setMode("manual")}
-                        className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
-                          mode === "manual"
-                            ? "bg-[#1A1A1C] border-primary-light/50"
-                            : "bg-bg-input border-border hover:border-text-dim"
-                        }`}
-                      >
-                        <div className="flex gap-2.5 items-start">
-                          <input
-                            type="radio"
-                            name="mode"
-                            checked={mode === "manual"}
-                            onChange={() => setMode("manual")}
-                            className="mt-0.5 accent-primary cursor-pointer"
-                          />
-                          <div>
-                            <div className="text-xs font-semibold text-white">Isi Sendiri</div>
-                            <div className="text-[11px] text-muted leading-tight mt-0.5">
-                              Pertanyaan disesuaikan dengan produk, diisi manual secara bebas.
-                            </div>
-                          </div>
+                  <div
+                    onClick={() => setMode("manual")}
+                    className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
+                      mode === "manual"
+                        ? "bg-[#1A1A1C] border-primary-light/50"
+                        : "bg-bg-input border-border hover:border-text-dim"
+                    }`}
+                  >
+                    <div className="flex gap-2.5 items-start">
+                      <input
+                        type="radio"
+                        name="mode"
+                        checked={mode === "manual"}
+                        onChange={() => setMode("manual")}
+                        className="mt-0.5 accent-primary cursor-pointer"
+                      />
+                      <div>
+                        <div className="text-xs font-semibold text-white">Isi Sendiri</div>
+                        <div className="text-[11px] text-muted leading-tight mt-0.5">
+                          Pertanyaan disesuaikan dengan produk, diisi manual secara bebas.
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end mt-8 pt-4 border-t border-border">
+                <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-3 mt-8 pt-4 border-t border-border">
                   <button
-                    onClick={handleProceedToStep2}
+                    onClick={() => setCurrentStep(1)}
+                    className="w-full sm:w-auto px-4 py-2.5 bg-bg-surface hover:text-white border border-border text-muted text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    ← Kembali
+                  </button>
+                  <button
+                    onClick={handleProceedToQuestions}
                     className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-all"
                   >
                     Lanjut ke Tanya Jawab →
@@ -1092,8 +1137,8 @@ export default function WorkspacePage() {
               </div>
             )}
 
-            {/* ================= STEP 2: TANYA JAWAB (PAGINATED & FOCUSED QUESTIONS) ================= */}
-            {currentStep === 2 && (
+            {/* ================= STEP 3: TANYA JAWAB (PAGINATED & FOCUSED QUESTIONS) ================= */}
+            {currentStep === 3 && (
               <div className="animate-step-enter">
                 <div className="flex justify-between items-start flex-wrap gap-2 mb-1">
                   <h1 className="text-2xl font-bold text-white tracking-tight">
@@ -1222,7 +1267,7 @@ export default function WorkspacePage() {
                         setQuestionPage(1);
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       } else {
-                        setCurrentStep(1);
+                        setCurrentStep(2);
                       }
                     }}
                     className="w-full sm:w-auto px-4 py-2.5 bg-bg-surface hover:text-white border border-border text-muted text-xs font-semibold rounded-lg transition-colors"
@@ -1284,8 +1329,8 @@ export default function WorkspacePage() {
               </div>
             )}
 
-            {/* ================= STEP 3: STUDIO & REVISI ================= */}
-            {currentStep === 3 && activePrd && (
+            {/* ================= STEP 4: STUDIO & REVISI ================= */}
+            {currentStep === 4 && activePrd && (
               <div className="animate-step-enter">
                 <div className="flex justify-between items-center mb-1">
                   <h1 className="text-2xl font-bold text-white tracking-tight">Studio PRD & Roadmap</h1>
@@ -1516,29 +1561,31 @@ export default function WorkspacePage() {
 
                 <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-3 mt-8 pt-4 border-t border-border">
                   <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <button
-                      onClick={() => setCurrentStep(2)}
-                      className="flex-1 sm:flex-none px-4 py-2.5 bg-bg-surface hover:text-white border border-border text-muted text-xs font-semibold rounded-lg transition-colors"
-                    >
-                      Ubah Jawaban
-                    </button>
+                    {questions.length > 0 && (
+                      <button
+                        onClick={() => setCurrentStep(3)}
+                        className="flex-1 sm:flex-none px-4 py-2.5 bg-bg-surface hover:text-white border border-border text-muted text-xs font-semibold rounded-lg transition-colors"
+                      >
+                        Ubah Jawaban
+                      </button>
+                    )}
 
-                    {/* Step 3 Dropdown */}
+                    {/* Step 4 Dropdown */}
                     <div className="relative flex-1 sm:flex-none dropdown-export-container">
                       <button
-                        onClick={() => setExportDropdownOpenStep3(!exportDropdownOpenStep3)}
+                        onClick={() => setExportDropdownOpenStudio(!exportDropdownOpenStudio)}
                         className="w-full px-4 py-2.5 bg-bg-surface hover:text-white border border-border text-muted text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5"
                       >
                         <span>Opsi & Bagikan</span>
-                        <svg className={`w-3.5 h-3.5 transition-transform ${exportDropdownOpenStep3 ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className={`w-3.5 h-3.5 transition-transform ${exportDropdownOpenStudio ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="6 9 12 15 18 9" />
                         </svg>
                       </button>
 
-                      {exportDropdownOpenStep3 && (
+                      {exportDropdownOpenStudio && (
                         <div className="absolute left-0 bottom-full mb-1.5 w-56 bg-[#161617] border border-border rounded-xl p-1.5 z-30 animate-scale-in flex flex-col gap-0.5">
                           <button
-                            onClick={() => { copyToClipboard(); setExportDropdownOpenStep3(false); }}
+                            onClick={() => { copyToClipboard(); setExportDropdownOpenStudio(false); }}
                             className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors"
                           >
                             <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1548,7 +1595,7 @@ export default function WorkspacePage() {
                             <span>Salin Teks (Markdown)</span>
                           </button>
                           <button
-                            onClick={() => { setShareModalOpen(true); setExportDropdownOpenStep3(false); }}
+                            onClick={() => { setShareModalOpen(true); setExportDropdownOpenStudio(false); }}
                             className="w-full px-3 py-2 text-left text-xs text-primary-light hover:bg-white/[0.04] rounded-lg flex items-center gap-2 transition-colors font-medium"
                           >
                             <svg className="w-3.5 h-3.5 text-primary-light flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1561,7 +1608,7 @@ export default function WorkspacePage() {
                             <span>Share ke AI Agent</span>
                           </button>
                           <button
-                            onClick={() => { downloadMarkdown(); setExportDropdownOpenStep3(false); }}
+                            onClick={() => { downloadMarkdown(); setExportDropdownOpenStudio(false); }}
                             className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors"
                           >
                             <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1572,7 +1619,7 @@ export default function WorkspacePage() {
                             <span>Unduh Berkas (.md)</span>
                           </button>
                           <button
-                            onClick={() => { window.print(); setExportDropdownOpenStep3(false); }}
+                            onClick={() => { window.print(); setExportDropdownOpenStudio(false); }}
                             className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors"
                           >
                             <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1596,8 +1643,8 @@ export default function WorkspacePage() {
               </div>
             )}
 
-            {/* ================= STEP 4: HASIL FINAL ================= */}
-            {currentStep === 4 && activePrd && (
+            {/* ================= STEP 5: HASIL FINAL ================= */}
+            {currentStep === 5 && activePrd && (
               <div className="animate-step-enter">
                 <div className="flex justify-between items-center mb-1">
                   <h1 className="text-2xl font-bold text-white tracking-tight">PRD Siap Dipakai</h1>
@@ -1609,7 +1656,7 @@ export default function WorkspacePage() {
                   Dokumen telah difinalkan. Anda dapat menyalin teks atau mengunduh file untuk tim pengembang.
                 </p>
 
-                {/* Step 4 Action Bar */}
+                {/* Step 5 Action Bar */}
                 <div className="flex justify-between items-center gap-3 mb-6 relative">
                   <button
                     onClick={resetNew}
@@ -1621,19 +1668,19 @@ export default function WorkspacePage() {
                   {/* Dropdown Ekspor & Bagikan */}
                   <div className="relative dropdown-export-container">
                     <button
-                      onClick={() => setExportDropdownOpenStep4(!exportDropdownOpenStep4)}
+                      onClick={() => setExportDropdownOpenFinal(!exportDropdownOpenFinal)}
                       className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-all flex items-center gap-2"
                     >
                       <span>Ekspor & Bagikan</span>
-                      <svg className={`w-3.5 h-3.5 transition-transform ${exportDropdownOpenStep4 ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg className={`w-3.5 h-3.5 transition-transform ${exportDropdownOpenFinal ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="6 9 12 15 18 9" />
                       </svg>
                     </button>
 
-                    {exportDropdownOpenStep4 && (
+                    {exportDropdownOpenFinal && (
                       <div className="absolute right-0 top-full mt-1.5 w-56 bg-[#161617] border border-border rounded-xl p-1.5 z-30 animate-scale-in flex flex-col gap-0.5">
                         <button
-                          onClick={() => { copyToClipboard(); setExportDropdownOpenStep4(false); }}
+                          onClick={() => { copyToClipboard(); setExportDropdownOpenFinal(false); }}
                           className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2.5 transition-colors"
                         >
                           <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1643,7 +1690,7 @@ export default function WorkspacePage() {
                           <span>Salin Teks (Markdown)</span>
                         </button>
                         <button
-                          onClick={() => { setShareModalOpen(true); setExportDropdownOpenStep4(false); }}
+                          onClick={() => { setShareModalOpen(true); setExportDropdownOpenFinal(false); }}
                           className="w-full px-3 py-2 text-left text-xs text-primary-light hover:bg-white/[0.04] rounded-lg flex items-center gap-2.5 transition-colors font-medium"
                         >
                           <svg className="w-3.5 h-3.5 text-primary-light flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1656,7 +1703,7 @@ export default function WorkspacePage() {
                           <span>Share ke AI Agent</span>
                         </button>
                         <button
-                          onClick={() => { downloadMarkdown(); setExportDropdownOpenStep4(false); }}
+                          onClick={() => { downloadMarkdown(); setExportDropdownOpenFinal(false); }}
                           className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2.5 transition-colors"
                         >
                           <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1667,7 +1714,7 @@ export default function WorkspacePage() {
                           <span>Unduh Berkas (.md)</span>
                         </button>
                         <button
-                          onClick={() => { window.print(); setExportDropdownOpenStep4(false); }}
+                          onClick={() => { window.print(); setExportDropdownOpenFinal(false); }}
                           className="w-full px-3 py-2 text-left text-xs text-ink hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2.5 transition-colors"
                         >
                           <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
