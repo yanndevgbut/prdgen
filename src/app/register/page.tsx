@@ -84,6 +84,9 @@ export default function RegisterPage() {
       setCountdown(60);
       setCanResend(false);
       setOtpValues(["", "", "", "", "", ""]);
+      // Token Turnstile sekali pakai. Minta token baru untuk kirim ulang.
+      setTurnstileToken("");
+      setTurnstileResetKey((k) => k + 1);
       setSuccessMsg(`Kode verifikasi 6 digit telah dikirim ke ${email.trim()}.`);
 
       // Focus first OTP input box
@@ -103,6 +106,10 @@ export default function RegisterPage() {
   // Resend OTP Email
   const handleResendOtp = async () => {
     if (!canResend) return;
+    if (!turnstileToken) {
+      setErrorMsg("Mohon selesaikan verifikasi keamanan terlebih dahulu.");
+      return;
+    }
     setErrorMsg(null);
     setSuccessMsg(null);
     setLoading(true);
@@ -115,6 +122,7 @@ export default function RegisterPage() {
           fullName: fullName.trim(),
           email: email.trim(),
           password,
+          turnstileToken,
           isResend: true,
         }),
       });
@@ -124,10 +132,14 @@ export default function RegisterPage() {
 
       setCountdown(60);
       setCanResend(false);
+      setTurnstileToken("");
+      setTurnstileResetKey((k) => k + 1);
       setSuccessMsg("Kode verifikasi baru telah dikirimkan ke email Anda.");
       otpInputRefs.current[0]?.focus();
     } catch (err: any) {
       setErrorMsg(err.message);
+      setTurnstileToken("");
+      setTurnstileResetKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
@@ -379,6 +391,26 @@ export default function RegisterPage() {
                 {loading ? "Memverifikasi..." : "Verifikasi & Buat Akun"}
               </button>
 
+              {canResend && (
+                <div className="pt-3 border-t border-border/60">
+                  <p className="text-[11px] text-muted mb-2">
+                    Selesaikan verifikasi keamanan untuk mengirim ulang kode.
+                  </p>
+                  <TurnstileWidget
+                    onVerify={(token) => {
+                      setTurnstileToken(token);
+                      setErrorMsg(null);
+                    }}
+                    onExpired={() => setTurnstileToken("")}
+                    onError={() =>
+                      setErrorMsg("Gagal memuat verifikasi keamanan. Muat ulang halaman.")
+                    }
+                    action="register_resend"
+                    resetKey={turnstileResetKey}
+                  />
+                </div>
+              )}
+
               {/* Resend & Edit Email Controls */}
               <div className="flex justify-between items-center text-xs pt-1 border-t border-border/60">
                 <button
@@ -394,8 +426,8 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={handleResendOtp}
-                      disabled={loading}
-                      className="text-primary-light font-semibold transition-colors"
+                      disabled={loading || !turnstileToken}
+                      className="text-primary-light font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Kirim Ulang Kode
                     </button>

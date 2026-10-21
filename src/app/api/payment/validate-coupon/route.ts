@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { FALLBACK_PRICING_PLANS, getPlanBasePrice, type PricingPlans } from "@/lib/pricing";
 import { z } from "zod";
 
 const validateCouponSchema = z.object({
@@ -10,6 +12,18 @@ const validateCouponSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Unauthorized. Silakan masuk terlebih dahulu." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const validation = validateCouponSchema.safeParse(body);
 
@@ -66,31 +80,12 @@ export async function POST(req: NextRequest) {
       .eq("key", "pricing_plans")
       .single();
 
-    const pricing = {
-      basic_monthly: 99000,
-      basic_yearly: 79000,
-      vip_monthly: 249000,
-      vip_yearly: 199000,
-      enterprise_monthly: 799000,
-      enterprise_yearly: 639000,
-      yearly_discount_pct: 20,
-      ...(pricingData?.value as any || {}),
+    const pricing: PricingPlans = {
+      ...FALLBACK_PRICING_PLANS,
+      ...((pricingData?.value as Partial<PricingPlans>) || {}),
     };
 
-    let baseAmount = Number(pricing.basic_monthly) || 99000;
-    if (billingCycle === "yearly") {
-      if (plan === "basic") {
-        baseAmount = Number(pricing.basic_yearly) || Math.round((Number(pricing.basic_monthly) || 99000) * (1 - pricing.yearly_discount_pct / 100));
-      } else if (plan === "vip") {
-        baseAmount = Number(pricing.vip_yearly) || Math.round((Number(pricing.vip_monthly) || 249000) * (1 - pricing.yearly_discount_pct / 100));
-      } else if (plan === "enterprise") {
-        baseAmount = Number(pricing.enterprise_yearly) || Math.round((Number(pricing.enterprise_monthly) || 799000) * (1 - pricing.yearly_discount_pct / 100));
-      }
-    } else {
-      if (plan === "basic") baseAmount = Number(pricing.basic_monthly) || 99000;
-      if (plan === "vip") baseAmount = Number(pricing.vip_monthly) || 249000;
-      if (plan === "enterprise") baseAmount = Number(pricing.enterprise_monthly) || 799000;
-    }
+    const baseAmount = getPlanBasePrice(pricing, plan, billingCycle);
 
     // 3. Hitung potongan diskon
     const discountAmount = Math.round((baseAmount * Number(coupon.percentage)) / 100);

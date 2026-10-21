@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
           email_confirm: true,
           user_metadata: {
             full_name: record.full_name,
-            plan: record.plan,
+            plan: "trial",
           },
         });
 
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
         .from("profiles")
         .update({
           full_name: record.full_name,
-          plan: record.plan,
+          plan: "trial",
           status: "active",
           updated_at: new Date().toISOString(),
         })
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
         email_confirm: true,
         user_metadata: {
           full_name: record.full_name,
-          plan: record.plan,
+          plan: "trial",
         },
       });
 
@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
         action: "USER_REGISTER_VERIFIED",
         details: {
           email: cleanEmail,
-          plan: record.plan,
+          plan: "trial",
           ip: ip,
         },
       });

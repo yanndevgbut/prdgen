@@ -69,15 +69,38 @@ export async function PATCH(req: NextRequest) {
 
   const updateData: any = { updated_at: new Date().toISOString() };
   if (status) updateData.status = status;
-  if (plan) updateData.plan = plan;
+  if (plan) {
+    updateData.plan = plan;
+    // Perubahan plan oleh admin adalah override manual: bersihkan expiry lama
+    // agar plan yang diberikan tidak langsung dianggap kedaluwarsa.
+    updateData.plan_expires_at = null;
+  }
   if (role) updateData.role = role;
 
-  const { data: updated, error } = await auth.adminClient
+  let { data: updated, error } = await auth.adminClient
     .from("profiles")
     .update(updateData)
     .eq("id", id)
     .select()
     .single();
+
+  // Kompatibilitas sebelum migration plan_expires_at dijalankan.
+  if (
+    error &&
+    (error.code === "PGRST204" ||
+      error.code === "42703" ||
+      /plan_expires_at/i.test(error.message))
+  ) {
+    delete updateData.plan_expires_at;
+    const retry = await auth.adminClient
+      .from("profiles")
+      .update(updateData)
+      .eq("id", id)
+      .select()
+      .single();
+    updated = retry.data;
+    error = retry.error;
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

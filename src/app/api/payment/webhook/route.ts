@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getDynamicPakasirConfig } from "@/lib/payment/pakasir";
+import { activatePlan } from "@/lib/security/plan";
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,12 +41,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: "Already completed" });
     }
 
-    // 2c. Verifikasi amount cocok (saran resmi Pakasir)
-    if (amount !== undefined && Number(amount) !== Number(transaction.total_payment)) {
+    // 2c. Verifikasi txn_id dan amount agar transaksi tidak bisa dipalsukan.
+    if (txn_id && transaction.txn_id && txn_id !== transaction.txn_id) {
       console.error(
-        `Webhook amount tidak cocok untuk ${order_id}: webhook=${amount}, db=${transaction.total_payment}`
+        `Webhook txn_id tidak cocok untuk ${order_id}: webhook=${txn_id}, db=${transaction.txn_id}`
       );
-      return NextResponse.json({ error: "Amount mismatch" }, { status: 400 });
+      return NextResponse.json({ error: "Transaction mismatch" }, { status: 400 });
+    }
+
+    const expectedAmount = Math.max(
+      0,
+      Number(transaction.amount) - Number(transaction.discount_amount || 0)
+    );
+    const expectedTotal = Number(transaction.total_payment);
+
+    if (amount !== undefined) {
+      const incomingAmount = Number(amount);
+      const amountMatches =
+        Number.isFinite(incomingAmount) &&
+        (incomingAmount === expectedAmount || incomingAmount === expectedTotal);
+
+      if (!amountMatches) {
+        console.error(
+          `Webhook amount tidak cocok untuk ${order_id}: webhook=${amount}, expected=${expectedAmount}/${expectedTotal}`
+        );
+        return NextResponse.json({ error: "Amount mismatch" }, { status: 400 });
+      }
     }
 
     // 3. Jika status adalah completed, perbarui transaksi & upgrade paket user
@@ -62,14 +83,13 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", transaction.id);
 
-      // Upgrade paket akun pengguna di tabel profiles
-      await adminSupabase
-        .from("profiles")
-        .update({
-          plan: transaction.plan,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", transaction.user_id);
+      // Upgrade paket + hitung masa aktif.
+      const activation = await activatePlan({
+        userId: transaction.user_id,
+        plan: transaction.plan,
+        billingCycle: transaction.billing_cycle || "monthly",
+        paidAt: completed_at || new Date().toISOString(),
+      });
 
       // Catat activity log
       await adminSupabase.from("activity_logs").insert({
@@ -80,6 +100,7 @@ export async function POST(req: NextRequest) {
           txn_id,
           plan: transaction.plan,
           total_payment: transaction.total_payment,
+          plan_expires_at: activation.expiresAt,
         },
       });
     } else if (status === "canceled") {

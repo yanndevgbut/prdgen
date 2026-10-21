@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateIndo } from "@/lib/utils";
+import { getEffectivePlan } from "@/lib/plan";
 import {
   DynamicQuestion,
   parseUserFlowsFromMarkdown,
@@ -259,7 +260,7 @@ export default function WorkspacePage() {
     return () => clearInterval(interval);
   }, [profile?.credits_reset_at]);
 
-  const userPlan = (profile?.plan || "trial").toLowerCase();
+  const userPlan = getEffectivePlan(profile?.plan, profile?.plan_expires_at);
   const isUnlimitedPlan = userPlan === "vip" || userPlan === "enterprise";
   const maxPlanCredits = userPlan === "basic" ? 10 : 3;
   const currentCredits = typeof profile?.credits === "number" ? profile.credits : maxPlanCredits;
@@ -271,7 +272,7 @@ export default function WorkspacePage() {
   };
 
   const isModelLocked = (minTier: string = "basic") => {
-    const userPlanLevel = TIER_LEVELS[profile?.plan?.toLowerCase() || "trial"] || 1;
+    const userPlanLevel = TIER_LEVELS[userPlan] || 1;
     const requiredLevel = TIER_LEVELS[minTier?.toLowerCase() || "basic"] || 1;
     return userPlanLevel < requiredLevel;
   };
@@ -672,7 +673,7 @@ export default function WorkspacePage() {
       
       {/* POP-UP IKLAN PROMO UNTUK USER TRIAL / UPGRADE PROMPT */}
       <PromoUpgradeModal
-        userPlan={profile?.plan}
+        userPlan={userPlan}
         prdCount={profile?.prd_count}
         isOpenControlled={promoModalOpen}
         onCloseControlled={() => setPromoModalOpen(false)}
@@ -751,7 +752,7 @@ export default function WorkspacePage() {
                 {profile?.full_name || user?.email?.split("@")[0] || "User"}
               </span>
               <span className="text-muted uppercase text-[10px] font-bold flex-shrink-0">
-                {profile?.plan || "Trial"}
+                {userPlan}
               </span>
             </div>
 

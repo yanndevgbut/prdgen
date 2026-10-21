@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPakasirStatus } from "@/lib/payment/pakasir";
+import { activatePlan } from "@/lib/security/plan";
 
 /**
  * Rekonsiliasi transaksi pending milik user saat membuka workspace (/app).
@@ -41,6 +42,7 @@ export async function GET(req: NextRequest) {
 
     let reconciled = 0;
     let upgraded = 0;
+    let mismatched = 0;
     let upgradedPlan: string | null = null;
 
     for (const trx of pendingList) {
@@ -55,6 +57,29 @@ export async function GET(req: NextRequest) {
         const pakasirStatus = await checkPakasirStatus(trx.txn_id);
 
         if (pakasirStatus.status === "completed") {
+          const expectedAmount = Math.max(
+            0,
+            Number(trx.amount) - Number(trx.discount_amount || 0)
+          );
+          const expectedTotal = Number(trx.total_payment);
+          const upstreamAmount = Number(pakasirStatus.amount);
+
+          if (
+            (pakasirStatus.order_id && pakasirStatus.order_id !== trx.order_id) ||
+            !Number.isFinite(upstreamAmount) ||
+            (upstreamAmount !== expectedAmount && upstreamAmount !== expectedTotal)
+          ) {
+            mismatched += 1;
+            console.error("Reconcile transaction mismatch:", {
+              order_id: trx.order_id,
+              upstream_order_id: pakasirStatus.order_id,
+              amount: upstreamAmount,
+              expected_amount: expectedAmount,
+              expected_total: expectedTotal,
+            });
+            continue;
+          }
+
           await adminSupabase
             .from("transactions")
             .update({
@@ -65,13 +90,12 @@ export async function GET(req: NextRequest) {
             })
             .eq("id", trx.id);
 
-          await adminSupabase
-            .from("profiles")
-            .update({
-              plan: trx.plan,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", trx.user_id);
+          const activation = await activatePlan({
+            userId: trx.user_id,
+            plan: trx.plan,
+            billingCycle: trx.billing_cycle || "monthly",
+            paidAt: pakasirStatus.completed_at,
+          });
 
           await adminSupabase.from("activity_logs").insert({
             user_id: trx.user_id,
@@ -80,6 +104,7 @@ export async function GET(req: NextRequest) {
               order_id: trx.order_id,
               plan: trx.plan,
               total_payment: trx.total_payment,
+              plan_expires_at: activation.expiresAt,
             },
           });
 
@@ -102,7 +127,7 @@ export async function GET(req: NextRequest) {
       await new Promise((r) => setTimeout(r, 4500));
     }
 
-    return NextResponse.json({ reconciled, upgraded, upgradedPlan });
+    return NextResponse.json({ reconciled, upgraded, mismatched, upgradedPlan });
   } catch (err: any) {
     console.error("Reconcile payment error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });

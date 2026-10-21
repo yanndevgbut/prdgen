@@ -41,20 +41,16 @@ export async function POST(req: NextRequest) {
     const cleanEmail = validation.data.email.trim().toLowerCase();
     const adminSupabase = createAdminClient();
 
-    // 1b. Verifikasi Cloudflare Turnstile sebelum query database & kirim email.
-    //     Pada resend, widget tidak tampil di langkah 2, jadi dilewati
-    //     (rate limit tetap melindungi dari spam).
-    if (!validation.data.isResend) {
-      const turnstile = await verifyTurnstileToken(
-        validation.data.turnstileToken || "",
-        ip
+    // 1b. Verifikasi Cloudflare Turnstile untuk kirim awal maupun kirim ulang.
+    const turnstile = await verifyTurnstileToken(
+      validation.data.turnstileToken || "",
+      ip
+    );
+    if (!turnstile.success) {
+      return NextResponse.json(
+        { error: turnstile.reason || "Verifikasi keamanan gagal. Silakan coba lagi." },
+        { status: 403 }
       );
-      if (!turnstile.success) {
-        return NextResponse.json(
-          { error: turnstile.reason || "Verifikasi keamanan gagal. Silakan coba lagi." },
-          { status: 403 }
-        );
-      }
     }
 
     // 2. Cek apakah email terdaftar di profiles / auth

@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revisePRDWithAI } from "@/lib/ai/9router";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
 import { consumeCredits } from "@/lib/security/credits";
+import { getEffectivePlan } from "@/lib/plan";
 import { z } from "zod";
 
 const reviseSchema = z.object({
@@ -63,9 +64,11 @@ export async function POST(req: NextRequest) {
     // 2. Cek profil user & ban status
     const { data: profile } = await adminSupabase
       .from("profiles")
-      .select("status, plan, prd_count")
+      .select("*")
       .eq("id", user.id)
       .single();
+
+    const effectivePlan = getEffectivePlan(profile?.plan, profile?.plan_expires_at);
 
     if (profile?.status === "banned") {
       return NextResponse.json(
@@ -100,7 +103,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const userPlanLevel = TIER_LEVELS[profile?.plan?.toLowerCase() || "trial"] || 1;
+      const userPlanLevel = TIER_LEVELS[effectivePlan] || 1;
       const requiredLevel = TIER_LEVELS[modelData.min_tier?.toLowerCase() || "basic"] || 1;
 
       if (userPlanLevel < requiredLevel) {

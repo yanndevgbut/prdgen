@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPakasirStatus, getPakasirTransaction } from "@/lib/payment/pakasir";
+import { activatePlan } from "@/lib/security/plan";
 
 async function verifyAdmin() {
   const supabase = createClient();
@@ -61,6 +62,27 @@ export async function POST(req: NextRequest) {
           const pakasirStatus = await checkPakasirStatus(trx.txn_id);
 
           if (pakasirStatus.status === "completed") {
+            const expectedAmount = Math.max(
+              0,
+              Number(trx.amount) - Number(trx.discount_amount || 0)
+            );
+            const expectedTotal = Number(trx.total_payment);
+            const upstreamAmount = Number(pakasirStatus.amount);
+
+            if (
+              (pakasirStatus.order_id && pakasirStatus.order_id !== trx.order_id) ||
+              !Number.isFinite(upstreamAmount) ||
+              (upstreamAmount !== expectedAmount && upstreamAmount !== expectedTotal)
+            ) {
+              failed.push({
+                order_id: trx.order_id,
+                reason: "Data transaksi tidak cocok dengan Pakasir",
+              });
+              // Tetap beri jeda agar tidak menabrak rate limit Pakasir.
+              await new Promise((r) => setTimeout(r, 4500));
+              continue;
+            }
+
             await auth.adminClient
               .from("transactions")
               .update({
@@ -71,13 +93,12 @@ export async function POST(req: NextRequest) {
               })
               .eq("id", trx.id);
 
-            await auth.adminClient
-              .from("profiles")
-              .update({
-                plan: trx.plan,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", trx.user_id);
+            const activation = await activatePlan({
+              userId: trx.user_id,
+              plan: trx.plan,
+              billingCycle: trx.billing_cycle || "monthly",
+              paidAt: pakasirStatus.completed_at,
+            });
 
             await auth.adminClient.from("activity_logs").insert({
               user_id: auth.userId,
@@ -86,6 +107,7 @@ export async function POST(req: NextRequest) {
                 order_id: trx.order_id,
                 target_user_id: trx.user_id,
                 plan: trx.plan,
+                plan_expires_at: activation.expiresAt,
               },
             });
 
@@ -147,13 +169,12 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", transaction.id);
 
-    await auth.adminClient
-      .from("profiles")
-      .update({
-        plan: transaction.plan,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", transaction.user_id);
+    const activation = await activatePlan({
+      userId: transaction.user_id,
+      plan: transaction.plan,
+      billingCycle: transaction.billing_cycle || "monthly",
+      paidAt: new Date().toISOString(),
+    });
 
     await auth.adminClient.from("activity_logs").insert({
       user_id: auth.userId,
@@ -162,6 +183,7 @@ export async function POST(req: NextRequest) {
         order_id: orderId,
         target_user_id: transaction.user_id,
         plan: transaction.plan,
+        plan_expires_at: activation.expiresAt,
         note: "Diubah manual oleh admin tanpa konfirmasi gateway",
       },
     });
@@ -206,6 +228,29 @@ export async function POST(req: NextRequest) {
       }
 
       if (pakasirStatus.status === "completed") {
+        const expectedAmount = Math.max(
+          0,
+          Number(transaction.amount) - Number(transaction.discount_amount || 0)
+        );
+        const expectedTotal = Number(transaction.total_payment);
+        const upstreamAmount = Number(pakasirStatus.amount);
+
+        if (
+          (pakasirStatus.order_id && pakasirStatus.order_id !== transaction.order_id) ||
+          !Number.isFinite(upstreamAmount) ||
+          (upstreamAmount !== expectedAmount && upstreamAmount !== expectedTotal)
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              status: transaction.status,
+              message:
+                "Data transaksi tidak cocok dengan Pakasir. Upgrade dibatalkan.",
+            },
+            { status: 409 }
+          );
+        }
+
         // Update database
         await auth.adminClient
           .from("transactions")
@@ -217,13 +262,12 @@ export async function POST(req: NextRequest) {
           .eq("id", transaction.id);
 
         // Upgrade user plan
-        await auth.adminClient
-          .from("profiles")
-          .update({
-            plan: transaction.plan,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", transaction.user_id);
+        const activation = await activatePlan({
+          userId: transaction.user_id,
+          plan: transaction.plan,
+          billingCycle: transaction.billing_cycle || "monthly",
+          paidAt: pakasirStatus.completed_at,
+        });
 
         // Audit log
         await auth.adminClient.from("activity_logs").insert({
@@ -233,6 +277,7 @@ export async function POST(req: NextRequest) {
             order_id: orderId,
             target_user_id: transaction.user_id,
             plan: transaction.plan,
+            plan_expires_at: activation.expiresAt,
           },
         });
 

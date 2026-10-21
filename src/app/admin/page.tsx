@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatRupiah, formatDateIndo } from "@/lib/utils";
+import { FALLBACK_PRICING_PLANS, type PricingPlans } from "@/lib/pricing";
 
 interface UserProfile {
   id: string;
@@ -92,15 +93,8 @@ export default function AdminPage() {
   const [checkingTxnId, setCheckingTxnId] = useState<string | null>(null);
 
   // Pricing Form State
-  const [pricing, setPricing] = useState({
-    basic_monthly: 99000,
-    basic_yearly: 79000,
-    vip_monthly: 249000,
-    vip_yearly: 199000,
-    enterprise_monthly: 799000,
-    enterprise_yearly: 639000,
-    yearly_discount_pct: 20,
-  });
+  const [pricing, setPricing] = useState<PricingPlans>({ ...FALLBACK_PRICING_PLANS });
+  const [pricingLoaded, setPricingLoaded] = useState(false);
 
   // Settings State
   const [aiSettings, setAiSettings] = useState({
@@ -210,7 +204,10 @@ export default function AdminPage() {
         dataSettings.settings.forEach((s: any) => {
           if (s.key === "ai_config") setAiSettings((prev) => ({ ...prev, ...s.value }));
           if (s.key === "maintenance_mode") setMaintenanceSettings((prev) => ({ ...prev, ...s.value }));
-          if (s.key === "pricing_plans") setPricing((prev) => ({ ...prev, ...s.value }));
+          if (s.key === "pricing_plans") {
+            setPricing({ ...FALLBACK_PRICING_PLANS, ...s.value });
+            setPricingLoaded(true);
+          }
           if (s.key === "general_settings") setGeneralSettings((prev) => ({ ...prev, ...s.value }));
           if (s.key === "pakasir_config") setPakasirSettings((prev) => ({ ...prev, ...s.value }));
         });
@@ -505,6 +502,10 @@ export default function AdminPage() {
   // Pricing & Coupon Actions
   const handleSavePricing = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!pricingLoaded) {
+      alert("Harga dari database belum berhasil dimuat. Muat ulang halaman sebelum menyimpan.");
+      return;
+    }
     try {
       const res = await fetch("/api/admin/settings", {
         method: "POST",
@@ -1089,6 +1090,12 @@ export default function AdminPage() {
                     <h2 className="text-sm font-semibold text-white mb-1">Ubah Tarif Paket (Bulanan & Tahunan)</h2>
                     <p className="text-xs text-muted mb-4">Pengaturan tarif langsung berlaku di halaman /pricing dan transaksi QRIS.</p>
 
+                    {!pricingLoaded && (
+                      <div className="mb-4 p-2.5 bg-amber-950/30 border border-amber-500/30 text-amber-300 text-[11px] rounded-lg">
+                        Harga aktual belum berhasil dimuat. Tombol simpan dinonaktifkan agar harga database tidak tertimpa nilai fallback.
+                      </div>
+                    )}
+
                     <form onSubmit={handleSavePricing} className="space-y-3.5">
                       {/* Basic Plan */}
                       <div className="p-3 bg-bg-input border border-border rounded-lg space-y-2">
@@ -1180,7 +1187,8 @@ export default function AdminPage() {
 
                       <button
                         type="submit"
-                        className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-colors mt-2"
+                        disabled={!pricingLoaded}
+                        className="w-full py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition-colors mt-2"
                       >
                         Simpan Perubahan Tarif
                       </button>

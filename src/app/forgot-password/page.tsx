@@ -77,6 +77,8 @@ export default function ForgotPasswordPage() {
       setCountdown(60);
       setCanResend(false);
       setOtpValues(["", "", "", "", "", ""]);
+      setTurnstileToken("");
+      setTurnstileResetKey((k) => k + 1);
       setSuccessMsg(`Kode verifikasi 6 digit telah dikirim ke ${email.trim()}.`);
 
       setTimeout(() => {
@@ -95,6 +97,10 @@ export default function ForgotPasswordPage() {
   // Resend OTP
   const handleResendOtp = async () => {
     if (!canResend) return;
+    if (!turnstileToken) {
+      setErrorMsg("Mohon selesaikan verifikasi keamanan terlebih dahulu.");
+      return;
+    }
     setErrorMsg(null);
     setSuccessMsg(null);
     setLoading(true);
@@ -103,7 +109,11 @@ export default function ForgotPasswordPage() {
       const res = await fetch("/api/auth/forgot-password/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), isResend: true }),
+        body: JSON.stringify({
+          email: email.trim(),
+          turnstileToken,
+          isResend: true,
+        }),
       });
 
       const data = await res.json();
@@ -111,10 +121,14 @@ export default function ForgotPasswordPage() {
 
       setCountdown(60);
       setCanResend(false);
+      setTurnstileToken("");
+      setTurnstileResetKey((k) => k + 1);
       setSuccessMsg("Kode verifikasi baru telah dikirimkan ke email Anda.");
       otpInputRefs.current[0]?.focus();
     } catch (err: any) {
       setErrorMsg(err.message);
+      setTurnstileToken("");
+      setTurnstileResetKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
@@ -369,6 +383,26 @@ export default function ForgotPasswordPage() {
                 {loading ? "Memproses..." : "Simpan Kata Sandi Baru"}
               </button>
 
+              {canResend && (
+                <div className="pt-3 border-t border-border/60">
+                  <p className="text-[11px] text-muted mb-2">
+                    Selesaikan verifikasi keamanan untuk mengirim ulang kode.
+                  </p>
+                  <TurnstileWidget
+                    onVerify={(token) => {
+                      setTurnstileToken(token);
+                      setErrorMsg(null);
+                    }}
+                    onExpired={() => setTurnstileToken("")}
+                    onError={() =>
+                      setErrorMsg("Gagal memuat verifikasi keamanan. Muat ulang halaman.")
+                    }
+                    action="forgot_password_resend"
+                    resetKey={turnstileResetKey}
+                  />
+                </div>
+              )}
+
               {/* Controls */}
               <div className="flex justify-between items-center text-xs pt-1 border-t border-border/60">
                 <button
@@ -384,8 +418,8 @@ export default function ForgotPasswordPage() {
                     <button
                       type="button"
                       onClick={handleResendOtp}
-                      disabled={loading}
-                      className="text-primary-light font-semibold transition-colors"
+                      disabled={loading || !turnstileToken}
+                      className="text-primary-light font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Kirim Ulang Kode
                     </button>

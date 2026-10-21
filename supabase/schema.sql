@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     prd_count INTEGER NOT NULL DEFAULT 0,
     credits INTEGER NOT NULL DEFAULT 3,
     credits_reset_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (NOW() + INTERVAL '24 hours'),
+    plan_expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -200,6 +201,8 @@ ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS credits INTEGER NOT NULL DEFAULT 3;
 ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS credits_reset_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (NOW() + INTERVAL '24 hours');
+ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMP WITH TIME ZONE;
 
 ALTER TABLE public.transactions
     ADD COLUMN IF NOT EXISTS is_sandbox BOOLEAN NOT NULL DEFAULT false;
@@ -215,6 +218,24 @@ ALTER TABLE public.transactions
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON public.transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_order_id ON public.transactions(order_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_txn_id ON public.transactions(txn_id);
+
+-- Txn ID dari gateway harus unik. Index hanya dibuat jika data lama tidak duplikat.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM public.transactions
+        WHERE txn_id IS NOT NULL
+        GROUP BY txn_id
+        HAVING COUNT(*) > 1
+    ) THEN
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_txn_id_unique
+            ON public.transactions(txn_id)
+            WHERE txn_id IS NOT NULL;
+    ELSE
+        RAISE WARNING 'idx_transactions_txn_id_unique tidak dibuat: ada txn_id duplikat.';
+    END IF;
+END $$;
 
 -- ------------------------------------------------------------------------------
 -- 4. FUNCTIONS & TRIGGERS
@@ -235,6 +256,35 @@ BEGIN
 END;
 $$;
 
+-- RPC aman untuk user mengganti nama sendiri tanpa bisa mengubah plan/credits/role.
+CREATE OR REPLACE FUNCTION public.update_my_profile(new_full_name TEXT)
+RETURNS public.profiles
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    updated_profile public.profiles;
+BEGIN
+    IF auth.uid() IS NULL THEN
+        RAISE EXCEPTION 'Not authenticated';
+    END IF;
+
+    UPDATE public.profiles
+    SET
+        full_name = LEFT(TRIM(COALESCE(new_full_name, '')), 100),
+        updated_at = NOW()
+    WHERE id = auth.uid()
+    RETURNING * INTO updated_profile;
+
+    RETURN updated_profile;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.update_my_profile(TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.update_my_profile(TEXT) FROM anon;
+GRANT EXECUTE ON FUNCTION public.update_my_profile(TEXT) TO authenticated;
+
 -- Trigger: Automatically create a Profile when auth.users is created (Safe version)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -244,25 +294,17 @@ SET search_path = public, auth, pg_temp
 AS $$
 DECLARE
     user_count INT;
-    chosen_plan public.subscription_plan;
     user_name TEXT;
 BEGIN
+    -- Serialisasi pembuatan user pertama agar tidak ada race admin pertama.
+    PERFORM pg_advisory_xact_lock(hashtext('prdgen_first_admin'));
+
     SELECT COUNT(*) INTO user_count FROM public.profiles;
 
     user_name := COALESCE(
         NEW.raw_user_meta_data->>'full_name',
         split_part(COALESCE(NEW.email, 'user@example.com'), '@', 1)
     );
-
-    BEGIN
-        chosen_plan := (NEW.raw_user_meta_data->>'plan')::public.subscription_plan;
-    EXCEPTION WHEN OTHERS THEN
-        chosen_plan := 'trial'::public.subscription_plan;
-    END;
-
-    IF chosen_plan IS NULL THEN
-        chosen_plan := 'trial'::public.subscription_plan;
-    END IF;
 
     INSERT INTO public.profiles (
         id,
@@ -277,7 +319,8 @@ BEGIN
         COALESCE(NEW.email, ''),
         user_name,
         CASE WHEN user_count = 0 THEN 'admin'::public.user_role ELSE 'user'::public.user_role END,
-        chosen_plan,
+        -- Jangan pernah percaya plan dari metadata signup. Semua user baru trial.
+        'trial'::public.subscription_plan,
         'active'::public.user_status,
         0
     )
@@ -345,14 +388,10 @@ CREATE POLICY "Users can view their own profile"
     ON public.profiles FOR SELECT
     USING (auth.uid() = id OR public.is_admin(auth.uid()));
 
+-- User tidak boleh update profiles langsung. Gunakan RPC update_my_profile().
+-- Plan, credits, role, dan status hanya boleh diubah server/service role.
 DROP POLICY IF EXISTS "Users can update their own basic profile info" ON public.profiles;
-CREATE POLICY "Users can update their own basic profile info"
-    ON public.profiles FOR UPDATE
-    USING (auth.uid() = id)
-    WITH CHECK (
-        auth.uid() = id AND 
-        (public.is_admin(auth.uid()) OR (role = (SELECT role FROM public.profiles WHERE id = auth.uid()) AND status = (SELECT status FROM public.profiles WHERE id = auth.uid())))
-    );
+REVOKE UPDATE ON public.profiles FROM anon, authenticated;
 
 DROP POLICY IF EXISTS "Admins have full access to all profiles" ON public.profiles;
 CREATE POLICY "Admins have full access to all profiles"
@@ -446,10 +485,9 @@ CREATE POLICY "Admins can manage AI models"
 -- ------------------------------------------------------------------------------
 -- RLS: DISCOUNT COUPONS
 -- ------------------------------------------------------------------------------
+-- Kupon hanya bisa dibaca lewat API server (service role). Jangan izinkan
+-- client melakukan enumerasi kode kupon langsung dari tabel.
 DROP POLICY IF EXISTS "Authenticated users can check active discount coupons" ON public.discount_coupons;
-CREATE POLICY "Authenticated users can check active discount coupons"
-    ON public.discount_coupons FOR SELECT
-    USING (is_active = true OR public.is_admin(auth.uid()));
 
 DROP POLICY IF EXISTS "Admins can manage discount coupons" ON public.discount_coupons;
 CREATE POLICY "Admins can manage discount coupons"
@@ -464,10 +502,9 @@ CREATE POLICY "Admins can view activity logs"
     ON public.activity_logs FOR SELECT
     USING (public.is_admin(auth.uid()));
 
+-- Activity log hanya ditulis server (service role), bukan client.
 DROP POLICY IF EXISTS "Authenticated users and system can insert activity logs" ON public.activity_logs;
-CREATE POLICY "Authenticated users and system can insert activity logs"
-    ON public.activity_logs FOR INSERT
-    WITH CHECK (auth.uid() IS NOT NULL);
+REVOKE INSERT ON public.activity_logs FROM anon, authenticated;
 
 -- ------------------------------------------------------------------------------
 -- RLS: EMAIL OTPS (Server-Only Access)
@@ -493,10 +530,9 @@ CREATE POLICY "Users can view their own transactions"
     ON public.transactions FOR SELECT
     USING (auth.uid() = user_id OR public.is_admin(auth.uid()));
 
+-- Transaksi hanya dibuat server lewat service role. Client tidak boleh insert.
 DROP POLICY IF EXISTS "Users can insert their own transactions" ON public.transactions;
-CREATE POLICY "Users can insert their own transactions"
-    ON public.transactions FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+REVOKE INSERT ON public.transactions FROM anon, authenticated;
 
 DROP POLICY IF EXISTS "Admins can manage all transactions" ON public.transactions;
 CREATE POLICY "Admins can manage all transactions"
@@ -515,7 +551,7 @@ VALUES
     ('maintenance_mode', '{"enabled": false, "message": "Kami sedang melakukan peningkatan performa dan update model AI. PRDGen akan kembali aktif dalam beberapa menit.", "eta": "24 Sep 2026, 18:00 WIB"}'::jsonb, 'Status Maintenance Platform', true),
     ('general_settings', '{"site_name": "PRDGen", "free_quota": 3, "default_lang": "id", "allow_registration": true}'::jsonb, 'Pengaturan Umum Platform', true),
     ('credit_plans', '{"trial": 3, "basic": 10, "vip": 0, "enterprise": 0}'::jsonb, 'Konfigurasi Jatah Kredit Harian per Paket (Reset 24 Jam)', true),
-    ('pricing_plans', '{"basic_monthly": 99000, "basic_yearly": 79000, "vip_monthly": 249000, "vip_yearly": 199000, "enterprise_monthly": 799000, "enterprise_yearly": 639000, "yearly_discount_pct": 20}'::jsonb, 'Konfigurasi Harga Paket Berlangganan', true)
+    ('pricing_plans', '{"basic_monthly": 10000, "basic_yearly": 20000, "vip_monthly": 20000, "vip_yearly": 30000, "enterprise_monthly": 50000, "enterprise_yearly": 60000, "yearly_discount_pct": 20}'::jsonb, 'Konfigurasi Harga Paket Berlangganan', true)
 ON CONFLICT (key) DO NOTHING;
 
 -- 6.2 Default AI Models Seed

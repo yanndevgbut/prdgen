@@ -39,23 +39,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { fullName, email, password, turnstileToken, isResend } = validation.data;
+    const { fullName, email, password, turnstileToken } = validation.data;
     const cleanEmail = email.trim().toLowerCase();
     // Paksa plan selalu "trial" saat registrasi (upgrade hanya via pembayaran)
     const plan = "trial";
     const adminSupabase = createAdminClient();
 
-    // 1b. Verifikasi Cloudflare Turnstile sebelum mengirim email.
-    //     Pada resend, widget sudah tidak tampil di langkah 2, jadi dilewati
-    //     (rate limit tetap melindungi dari spam).
-    if (!isResend) {
-      const turnstile = await verifyTurnstileToken(turnstileToken || "", ip);
-      if (!turnstile.success) {
-        return NextResponse.json(
-          { error: turnstile.reason || "Verifikasi keamanan gagal. Silakan coba lagi." },
-          { status: 403 }
-        );
-      }
+    // 1b. Verifikasi Cloudflare Turnstile untuk kirim awal maupun kirim ulang.
+    const turnstile = await verifyTurnstileToken(turnstileToken || "", ip);
+    if (!turnstile.success) {
+      return NextResponse.json(
+        { error: turnstile.reason || "Verifikasi keamanan gagal. Silakan coba lagi." },
+        { status: 403 }
+      );
     }
 
     // 2. Cek apakah pendaftaran dibuka oleh admin di sistem

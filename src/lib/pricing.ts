@@ -8,6 +8,32 @@ export type PricingPlans = {
   yearly_discount_pct: number;
 };
 
+export type PaidPlan = "basic" | "vip" | "enterprise";
+export type BillingCycle = "monthly" | "yearly";
+
+export function getPlanBasePrice(
+  pricing: PricingPlans,
+  plan: PaidPlan,
+  billingCycle: BillingCycle
+): number {
+  const monthlyKey = `${plan}_monthly` as keyof PricingPlans;
+  const yearlyKey = `${plan}_yearly` as keyof PricingPlans;
+  const fallbackMonthly = Number(FALLBACK_PRICING_PLANS[monthlyKey]);
+  const monthly = Number(pricing[monthlyKey]) || fallbackMonthly;
+
+  if (billingCycle === "monthly") {
+    return monthly;
+  }
+
+  const yearly = Number(pricing[yearlyKey]);
+  if (Number.isFinite(yearly) && yearly > 0) {
+    return yearly;
+  }
+
+  const discountPct = Number(pricing.yearly_discount_pct) || 0;
+  return Math.max(500, Math.round(monthly * (1 - discountPct / 100)));
+}
+
 // Fallback hanya dipakai jika pricing_plans gagal dibaca dari database.
 export const FALLBACK_PRICING_PLANS: PricingPlans = {
   basic_monthly: 10000,

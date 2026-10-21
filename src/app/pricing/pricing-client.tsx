@@ -7,7 +7,8 @@ import { Footer } from "@/components/footer";
 import { formatRupiah } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { QRISPaymentModal } from "@/components/qris-payment-modal";
-import type { PricingPlans } from "@/lib/pricing";
+import { getPlanBasePrice, type PricingPlans } from "@/lib/pricing";
+import { getEffectivePlan } from "@/lib/plan";
 
 interface PricingClientProps {
   initialPricing: PricingPlans;
@@ -26,6 +27,7 @@ export function PricingClient({ initialPricing }: PricingClientProps) {
   const [qrisModalOpen, setQrisModalOpen] = useState(false);
 
   const pricing = initialPricing;
+  const effectivePlan = getEffectivePlan(profile?.plan, profile?.plan_expires_at);
 
   useEffect(() => {
     async function loadData() {
@@ -45,19 +47,8 @@ export function PricingClient({ initialPricing }: PricingClientProps) {
     loadData();
   }, [supabase]);
 
-  const getPlanPrice = (planKey: "basic" | "vip" | "enterprise") => {
-    const monthlyKey = `${planKey}_monthly` as keyof PricingPlans;
-    const yearlyKey = `${planKey}_yearly` as keyof PricingPlans;
-    const monthlyVal = Number(pricing[monthlyKey]);
-
-    if (isYearly) {
-      const yearlyVal = Number(pricing[yearlyKey]);
-      if (yearlyVal) return yearlyVal;
-      return Math.round(monthlyVal * (1 - pricing.yearly_discount_pct / 100));
-    }
-
-    return monthlyVal;
-  };
+  const getPlanPrice = (planKey: "basic" | "vip" | "enterprise") =>
+    getPlanBasePrice(pricing, planKey, isYearly ? "yearly" : "monthly");
 
   const handleOpenCheckout = (planKey: "basic" | "vip" | "enterprise") => {
     if (!user) {
@@ -170,7 +161,7 @@ export function PricingClient({ initialPricing }: PricingClientProps) {
               onClick={() => handleOpenCheckout("basic")}
               className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
             >
-              {profile?.plan === "basic" ? "Paket Saat Ini" : "Pilih Basic (QRIS)"}
+              {effectivePlan === "basic" ? "Paket Saat Ini" : "Pilih Basic (QRIS)"}
             </button>
           </div>
 
@@ -230,7 +221,7 @@ export function PricingClient({ initialPricing }: PricingClientProps) {
               onClick={() => handleOpenCheckout("vip")}
               className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
             >
-              {profile?.plan === "vip" ? "Paket Saat Ini" : "Bayar VIP dengan QRIS"}
+              {effectivePlan === "vip" ? "Paket Saat Ini" : "Bayar VIP dengan QRIS"}
             </button>
           </div>
 
@@ -285,7 +276,7 @@ export function PricingClient({ initialPricing }: PricingClientProps) {
               onClick={() => handleOpenCheckout("enterprise")}
               className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
             >
-              {profile?.plan === "enterprise" ? "Paket Saat Ini" : "Pilih Enterprise (QRIS)"}
+              {effectivePlan === "enterprise" ? "Paket Saat Ini" : "Pilih Enterprise (QRIS)"}
             </button>
           </div>
 

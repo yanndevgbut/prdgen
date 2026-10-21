@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getEffectivePlan } from "@/lib/plan";
 import { User } from "@supabase/supabase-js";
 
 export function Navbar() {
@@ -166,7 +167,7 @@ export function Navbar() {
                       {profile?.full_name || user.email?.split("@")[0] || "User"}
                     </div>
                     <span className="text-[10px] uppercase font-bold bg-white/[0.04] text-muted px-2 py-0.5 rounded border border-border">
-                      {profile?.plan || "Trial"}
+                      {getEffectivePlan(profile?.plan, profile?.plan_expires_at)}
                     </span>
                   </div>
                   <div className="text-[11px] text-dim truncate">{user.email}</div>

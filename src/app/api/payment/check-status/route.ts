@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPakasirStatus } from "@/lib/payment/pakasir";
+import { activatePlan } from "@/lib/security/plan";
 
 /**
  * Rate limit Pakasir: 1 request status per 4 detik per transaksi.
@@ -136,6 +137,36 @@ export async function GET(req: NextRequest) {
       writeCache(orderId, upstreamStatus, upstreamCompletedAt, upstreamIsSandbox);
 
       if (upstreamStatus === "completed") {
+        // Pastikan transaksi yang dikonfirmasi Pakasir memang transaksi ini.
+        const expectedAmount = Math.max(
+          0,
+          Number(transaction.amount) - Number(transaction.discount_amount || 0)
+        );
+        const expectedTotal = Number(transaction.total_payment);
+        const upstreamAmount = Number(pakasirStatus.amount);
+
+        if (
+          (pakasirStatus.order_id && pakasirStatus.order_id !== transaction.order_id) ||
+          !Number.isFinite(upstreamAmount) ||
+          (upstreamAmount !== expectedAmount && upstreamAmount !== expectedTotal)
+        ) {
+          console.error("Pakasir transaction mismatch:", {
+            order_id: transaction.order_id,
+            upstream_order_id: pakasirStatus.order_id,
+            amount: upstreamAmount,
+            expected_amount: expectedAmount,
+            expected_total: expectedTotal,
+          });
+
+          return NextResponse.json(
+            {
+              error:
+                "Data pembayaran tidak cocok dengan transaksi. Silakan hubungi admin.",
+            },
+            { status: 409 }
+          );
+        }
+
         // Update DB + upgrade paket user
         await adminSupabase
           .from("transactions")
@@ -147,19 +178,19 @@ export async function GET(req: NextRequest) {
           })
           .eq("id", transaction.id);
 
-        await adminSupabase
-          .from("profiles")
-          .update({
-            plan: transaction.plan,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", transaction.user_id);
+        const activation = await activatePlan({
+          userId: transaction.user_id,
+          plan: transaction.plan,
+          billingCycle: transaction.billing_cycle || "monthly",
+          paidAt: upstreamCompletedAt,
+        });
 
         return NextResponse.json({
           status: "completed",
           plan: transaction.plan,
           orderId: transaction.order_id,
           completedAt: upstreamCompletedAt,
+          planExpiresAt: activation.expiresAt,
           isSandbox: upstreamIsSandbox,
           checkedAt: new Date().toISOString(),
         });

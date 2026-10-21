@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEffectivePlan, normalizePlan } from "@/lib/plan";
 
 export interface PlanCreditConfig {
   trial: number;
@@ -85,9 +86,10 @@ export async function checkAndRefreshCredits(userId: string): Promise<UserCredit
   const supabase = createAdminClient();
   const config = await getPlanCreditConfigs();
 
+  // select("*") agar tetap kompatibel sebelum migration plan_expires_at ada.
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("plan, status, credits, credits_reset_at")
+    .select("*")
     .eq("id", userId)
     .single();
 
@@ -95,7 +97,21 @@ export async function checkAndRefreshCredits(userId: string): Promise<UserCredit
     throw new Error("Profil pengguna tidak ditemukan.");
   }
 
-  const userPlan = (profile.plan || "trial").toLowerCase();
+  const storedPlan = normalizePlan(profile.plan);
+  const userPlan = getEffectivePlan(profile.plan, profile.plan_expires_at);
+
+  // Best-effort: rapikan plan yang sudah kedaluwarsa menjadi trial.
+  if (storedPlan !== userPlan) {
+    await supabase
+      .from("profiles")
+      .update({
+        plan: "trial",
+        plan_expires_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+  }
+
   const isUnlimited = userPlan === "vip" || userPlan === "enterprise";
 
   if (isUnlimited) {
