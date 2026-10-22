@@ -7,6 +7,7 @@ import {
   parseRoadmapFromMarkdown,
 } from "@/lib/ai/9router";
 import { formatDateIndo } from "@/lib/utils";
+import { BRAND_NAME } from "@/lib/brand";
 
 interface SharePageProps {
   params: {
@@ -28,8 +29,8 @@ export async function generateMetadata({ params }: SharePageProps) {
     .single();
 
   return {
-    title: prd ? `${prd.title} | PRDGen` : "Dokumen PRD | PRDGen",
-    description: "Product Requirements Document (PRD) yang dihasilkan oleh PRDGen AI.",
+    title: prd ? `${prd.title} | ${BRAND_NAME}` : `Dokumen PRD | ${BRAND_NAME}`,
+    description: `Product Requirements Document (PRD) yang dihasilkan oleh ${BRAND_NAME}.`,
     robots: {
       index: false,
       follow: false,
@@ -208,7 +209,7 @@ export default async function SharePublicPage({ params }: SharePageProps) {
 
       {/* Footer */}
       <footer className="border-t border-border py-6 text-center text-xs text-dim">
-        PRDGen &bull; Platform Pembuatan PRD Otomatis Berbasis AI
+        {BRAND_NAME} &bull; Platform Pembuatan PRD Otomatis Berbasis AI
       </footer>
     </div>
   );

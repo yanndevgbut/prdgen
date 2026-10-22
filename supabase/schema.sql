@@ -1,5 +1,5 @@
 -- ==============================================================================
--- PRDGen.ai - Supabase (PostgreSQL) Database Migration & Schema Setup (Idempotent)
+-- PRDGen - Supabase (PostgreSQL) Database Migration & Schema Setup (Idempotent)
 -- ==============================================================================
 -- PETUNJUK:
 -- 1. Buka dashboard Supabase -> SQL Editor.

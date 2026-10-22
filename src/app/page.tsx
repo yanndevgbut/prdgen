@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Footer } from "@/components/footer";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "PrdGen | Buat PRD Tanpa Ribet dengan AI",
+  title: `${BRAND_NAME} | ${BRAND_TAGLINE}`,
   description:
     "Create PRD / buat dokumen Product Requirements Document (PRD) otomatis dan terstruktur dengan AI. Web bikin PRD tanpa ribet, siap dibagikan ke tim developer.",
   keywords: [
@@ -22,15 +23,15 @@ const faqJsonLd = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "Apa itu PrdGen?",
+      name: `Apa itu ${BRAND_NAME}?`,
       acceptedAnswer: {
         "@type": "Answer",
-        text: "PrdGen adalah web bikin PRD berbasis AI yang membantu Anda membuat Product Requirements Document (PRD) otomatis dan terstruktur tanpa ribet.",
+        text: `${BRAND_NAME} adalah web bikin PRD berbasis AI yang membantu Anda membuat Product Requirements Document (PRD) otomatis dan terstruktur tanpa ribet.`,
       },
     },
     {
       "@type": "Question",
-      name: "Bagaimana cara buat PRD di PrdGen?",
+      name: `Bagaimana cara buat PRD di ${BRAND_NAME}?`,
       acceptedAnswer: {
         "@type": "Answer",
         text: "Tulis ide produk, jawab beberapa detail teknis, lalu AI menyusun dokumen PRD lengkap yang siap dibagikan ke tim developer.",
@@ -38,7 +39,7 @@ const faqJsonLd = {
     },
     {
       "@type": "Question",
-      name: "Apakah PrdGen bisa dipakai gratis?",
+      name: `Apakah ${BRAND_NAME} bisa dipakai gratis?`,
       acceptedAnswer: {
         "@type": "Answer",
         text: "Bisa. Setiap akun baru mendapat 3 kredit PRD gratis yang di-reset otomatis setiap 24 jam untuk mencoba seluruh fitur generator PRD AI sebelum memilih paket berbayar.",

@@ -3,14 +3,15 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { MaintenanceBanner } from "@/components/maintenance-banner";
+import { BRAND_NAME, BRAND_SITE_URL, BRAND_TAGLINE } from "@/lib/brand";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const siteUrl = "https://prdgen.my.id";
+const siteUrl = BRAND_SITE_URL;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "PrdGen | Buat PRD Tanpa Ribet dengan AI",
+  title: `${BRAND_NAME} | ${BRAND_TAGLINE}`,
   description:
     "Create PRD / buat dokumen Product Requirements Document (PRD) otomatis dan terstruktur dengan AI. Web bikin PRD tanpa ribet, siap dibagikan ke tim developer.",
   keywords: [
@@ -32,23 +33,23 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: siteUrl,
-    title: "PrdGen | Buat PRD Tanpa Ribet dengan AI",
+    title: `${BRAND_NAME} | ${BRAND_TAGLINE}`,
     description:
       "Create PRD / buat dokumen Product Requirements Document (PRD) otomatis dan terstruktur dengan AI. Web bikin PRD tanpa ribet.",
-    siteName: "PrdGen",
+    siteName: BRAND_NAME,
     locale: "id_ID",
     images: [
       {
         url: "/icon.png",
         width: 512,
         height: 512,
-        alt: "PrdGen, Buat PRD Tanpa Ribet",
+        alt: `${BRAND_NAME}, Buat PRD Tanpa Ribet`,
       },
     ],
   },
   twitter: {
     card: "summary",
-    title: "PrdGen | Buat PRD Tanpa Ribet dengan AI",
+    title: `${BRAND_NAME} | ${BRAND_TAGLINE}`,
     description:
       "Create PRD / buat dokumen PRD otomatis dengan AI. Web bikin PRD tanpa ribet.",
     images: ["/icon.png"],
@@ -63,7 +64,7 @@ export const metadata: Metadata = {
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "PrdGen",
+  name: BRAND_NAME,
   url: siteUrl,
   logo: `${siteUrl}/icon.png`,
   slogan: "Buat PRD Tanpa Ribet",
@@ -72,9 +73,9 @@ const organizationJsonLd = {
 const websiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "PrdGen",
+  name: BRAND_NAME,
   url: siteUrl,
-  description: "Buat PRD Tanpa Ribet dengan AI.",
+  description: BRAND_TAGLINE + ".",
 };
 
 export default function RootLayout({

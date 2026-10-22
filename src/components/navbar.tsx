@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getEffectivePlan } from "@/lib/plan";
+import { BRAND_NAME } from "@/lib/brand";
 import { User } from "@supabase/supabase-js";
 
 export function Navbar() {
@@ -250,7 +251,7 @@ export function Navbar() {
 
             {/* Footer in Drawer */}
             <div className="text-[11px] text-dim pt-4 border-t border-border text-center">
-              PRDGen v1.0 • Powered by 9router AI
+              {BRAND_NAME} v1.0 • Powered by 9router AI
             </div>
           </div>
         </div>
