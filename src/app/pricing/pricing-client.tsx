@@ -8,7 +8,7 @@ import { formatRupiah } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { QRISPaymentModal } from "@/components/qris-payment-modal";
 import { getPlanBasePrice, type PricingPlans } from "@/lib/pricing";
-import { getEffectivePlan } from "@/lib/plan";
+import { getEffectivePlan, getPlanLevel } from "@/lib/plan";
 
 interface PricingClientProps {
   initialPricing: PricingPlans;
@@ -50,7 +50,16 @@ export function PricingClient({ initialPricing }: PricingClientProps) {
   const getPlanPrice = (planKey: "basic" | "vip" | "enterprise") =>
     getPlanBasePrice(pricing, planKey, isYearly ? "yearly" : "monthly");
 
+  const isPlanUnavailable = (planKey: "basic" | "vip" | "enterprise") =>
+    getPlanLevel(planKey) < getPlanLevel(effectivePlan);
+
+  const basicUnavailable = isPlanUnavailable("basic");
+  const vipUnavailable = isPlanUnavailable("vip");
+  const enterpriseUnavailable = isPlanUnavailable("enterprise");
+
   const handleOpenCheckout = (planKey: "basic" | "vip" | "enterprise") => {
+    if (isPlanUnavailable(planKey)) return;
+
     if (!user) {
       router.push(`/login?redirect=/pricing`);
       return;
@@ -85,9 +94,19 @@ export function PricingClient({ initialPricing }: PricingClientProps) {
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-3">
           Pilih paket sesuai kebutuhanmu
         </h1>
-        <p className="text-sm md:text-base text-muted mb-8">
+        <p className="text-sm md:text-base text-muted mb-4">
           Semua paket sudah termasuk AI generator PRD otomatis & ekspor dokumen siap pakai.
         </p>
+
+        {effectivePlan !== "trial" && (
+          <p className="text-xs text-muted mb-4">
+            Paket aktif Anda:{" "}
+            <span className="text-white font-semibold">
+              {effectivePlan.toUpperCase()}
+            </span>
+            . Paket yang lebih rendah tidak dapat dibeli selama paket masih aktif.
+          </p>
+        )}
 
         {/* Toggle Switch */}
         <div className="inline-flex items-center p-1 bg-bg-surface border border-border rounded-lg">
@@ -159,9 +178,23 @@ export function PricingClient({ initialPricing }: PricingClientProps) {
             </div>
             <button
               onClick={() => handleOpenCheckout("basic")}
-              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
+              disabled={basicUnavailable}
+              title={
+                basicUnavailable
+                  ? `Paket ${effectivePlan.toUpperCase()} Anda masih aktif`
+                  : undefined
+              }
+              className={`w-full py-2.5 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors ${
+                basicUnavailable
+                  ? "bg-bg-input/50 opacity-50 cursor-not-allowed"
+                  : "bg-bg-input hover:border-white/20 cursor-pointer"
+              }`}
             >
-              {effectivePlan === "basic" ? "Paket Saat Ini" : "Pilih Basic (QRIS)"}
+              {basicUnavailable
+                ? "Tidak tersedia"
+                : effectivePlan === "basic"
+                  ? "Paket Saat Ini"
+                  : "Pilih Basic (QRIS)"}
             </button>
           </div>
 
@@ -219,9 +252,23 @@ export function PricingClient({ initialPricing }: PricingClientProps) {
             </div>
             <button
               onClick={() => handleOpenCheckout("vip")}
-              className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
+              disabled={vipUnavailable}
+              title={
+                vipUnavailable
+                  ? `Paket ${effectivePlan.toUpperCase()} Anda masih aktif`
+                  : undefined
+              }
+              className={`w-full py-2.5 text-white text-xs font-semibold rounded-lg text-center transition-colors ${
+                vipUnavailable
+                  ? "bg-primary/30 opacity-60 cursor-not-allowed"
+                  : "bg-primary hover:bg-primary-hover cursor-pointer"
+              }`}
             >
-              {effectivePlan === "vip" ? "Paket Saat Ini" : "Bayar VIP dengan QRIS"}
+              {vipUnavailable
+                ? "Tidak tersedia"
+                : effectivePlan === "vip"
+                  ? "Paket Saat Ini"
+                  : "Bayar VIP dengan QRIS"}
             </button>
           </div>
 
@@ -274,9 +321,23 @@ export function PricingClient({ initialPricing }: PricingClientProps) {
             </div>
             <button
               onClick={() => handleOpenCheckout("enterprise")}
-              className="w-full py-2.5 bg-bg-input hover:border-white/20 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors cursor-pointer"
+              disabled={enterpriseUnavailable}
+              title={
+                enterpriseUnavailable
+                  ? `Paket ${effectivePlan.toUpperCase()} Anda masih aktif`
+                  : undefined
+              }
+              className={`w-full py-2.5 border border-border text-white text-xs font-semibold rounded-lg text-center transition-colors ${
+                enterpriseUnavailable
+                  ? "bg-bg-input/50 opacity-50 cursor-not-allowed"
+                  : "bg-bg-input hover:border-white/20 cursor-pointer"
+              }`}
             >
-              {effectivePlan === "enterprise" ? "Paket Saat Ini" : "Pilih Enterprise (QRIS)"}
+              {enterpriseUnavailable
+                ? "Tidak tersedia"
+                : effectivePlan === "enterprise"
+                  ? "Paket Saat Ini"
+                  : "Pilih Enterprise (QRIS)"}
             </button>
           </div>
 

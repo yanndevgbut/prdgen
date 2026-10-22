@@ -1,10 +1,21 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { normalizePlan, type PlanName } from "@/lib/plan";
+import {
+  getEffectivePlan,
+  isPlanDowngrade,
+  normalizePlan,
+  type PlanName,
+} from "@/lib/plan";
 
 export interface ActivatePlanResult {
   plan: PlanName;
   expiresAt: string | null;
   legacy: boolean;
+  downgradeBlocked?: boolean;
+}
+
+export interface PlanDowngradeCheck {
+  downgrade: boolean;
+  currentPlan: PlanName;
 }
 
 function addBillingCycle(date: Date, billingCycle: string): Date {
@@ -46,6 +57,25 @@ export async function activatePlan(params: {
     .select("plan, plan_expires_at")
     .eq("id", params.userId)
     .maybeSingle();
+
+  if (currentProfile) {
+    const currentPlan = getEffectivePlan(
+      currentProfile.plan,
+      currentProfile.plan_expires_at
+    );
+
+    if (isPlanDowngrade(currentPlan, plan)) {
+      return {
+        plan: currentPlan,
+        expiresAt:
+          typeof currentProfile.plan_expires_at === "string"
+            ? currentProfile.plan_expires_at
+            : null,
+        legacy: false,
+        downgradeBlocked: true,
+      };
+    }
+  }
 
   if (
     currentProfile &&
@@ -97,4 +127,30 @@ export async function activatePlan(params: {
   if (fallbackError) throw fallbackError;
 
   return { plan, expiresAt: null, legacy: true };
+}
+
+/**
+ * Cek apakah pembelian targetPlan akan menurunkan plan user yang sedang aktif.
+ * Dipakai sebelum transaksi ditandai lunas agar plan tidak pernah turun.
+ */
+export async function checkPlanDowngrade(
+  userId: string,
+  targetPlan: string
+): Promise<PlanDowngradeCheck> {
+  const supabase = createAdminClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan, plan_expires_at")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (!profile) {
+    return { downgrade: false, currentPlan: "trial" };
+  }
+
+  const currentPlan = getEffectivePlan(profile.plan, profile.plan_expires_at);
+  return {
+    downgrade: isPlanDowngrade(currentPlan, targetPlan),
+    currentPlan,
+  };
 }

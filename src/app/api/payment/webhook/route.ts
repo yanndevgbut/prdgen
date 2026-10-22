@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getDynamicPakasirConfig } from "@/lib/payment/pakasir";
 import { isTransactionPriceValid } from "@/lib/payment/verify";
-import { activatePlan } from "@/lib/security/plan";
+import {
+  activatePlan,
+  checkPlanDowngrade,
+} from "@/lib/security/plan";
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,6 +58,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: "Already completed" });
     }
 
+    if (transaction.status === "canceled") {
+      return NextResponse.json({ success: true, message: "Already canceled" });
+    }
+
     // 2c. Verifikasi txn_id dan amount agar transaksi tidak bisa dipalsukan.
     if (txn_id && transaction.txn_id && txn_id !== transaction.txn_id) {
       console.error(
@@ -96,6 +103,47 @@ export async function POST(req: NextRequest) {
           { error: "Transaction amount does not match plan price" },
           { status: 400 }
         );
+      }
+
+      const downgrade = await checkPlanDowngrade(
+        transaction.user_id,
+        transaction.plan
+      );
+
+      if (downgrade.downgrade) {
+        await adminSupabase
+          .from("transactions")
+          .update({
+            status: "canceled",
+            txn_id: txn_id || transaction.txn_id,
+            completed_at: completed_at || new Date().toISOString(),
+            is_sandbox:
+              is_sandbox !== undefined
+                ? Boolean(is_sandbox)
+                : transaction.is_sandbox,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", transaction.id);
+
+        await adminSupabase.from("activity_logs").insert({
+          user_id: transaction.user_id,
+          action: "PAYMENT_DOWNGRADE_BLOCKED",
+          details: {
+            order_id,
+            txn_id,
+            current_plan: downgrade.currentPlan,
+            attempted_plan: transaction.plan,
+            total_payment: transaction.total_payment,
+            refund_required: true,
+            source: "webhook",
+          },
+        });
+
+        return NextResponse.json({
+          success: true,
+          message:
+            "Downgrade blocked; transaction canceled and flagged for refund",
+        });
       }
 
       // Update status transaksi

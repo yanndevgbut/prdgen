@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createPakasirQRIS } from "@/lib/payment/pakasir";
 import { FALLBACK_PRICING_PLANS, getPlanBasePrice, type PricingPlans } from "@/lib/pricing";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
+import { getEffectivePlan, isPlanDowngrade } from "@/lib/plan";
 import { z } from "zod";
 
 const createQrisSchema = z.object({
@@ -58,14 +59,35 @@ export async function POST(req: NextRequest) {
     // 1. Cek profil user di database
     const { data: profile } = await adminSupabase
       .from("profiles")
-      .select("status, plan, prd_count")
+      .select("status, plan, plan_expires_at, prd_count")
       .eq("id", user.id)
       .single();
 
-    if (profile?.status === "banned") {
+    if (!profile) {
+      return NextResponse.json(
+        { error: "Profil pengguna tidak ditemukan." },
+        { status: 404 }
+      );
+    }
+
+    if (profile.status === "banned") {
       return NextResponse.json(
         { error: "Akun Anda telah dinonaktifkan oleh administrator." },
         { status: 403 }
+      );
+    }
+
+    const currentPlan = getEffectivePlan(
+      profile.plan,
+      profile.plan_expires_at
+    );
+
+    if (isPlanDowngrade(currentPlan, plan)) {
+      return NextResponse.json(
+        {
+          error: `Paket ${currentPlan.toUpperCase()} Anda masih aktif. Paket ${plan.toUpperCase()} tidak dapat dibeli karena lebih rendah. Pilih paket yang sama untuk perpanjangan atau paket yang lebih tinggi.`,
+        },
+        { status: 409 }
       );
     }
 

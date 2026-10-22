@@ -3,7 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPakasirStatus } from "@/lib/payment/pakasir";
 import { isTransactionPriceValid } from "@/lib/payment/verify";
-import { activatePlan } from "@/lib/security/plan";
+import {
+  activatePlan,
+  checkPlanDowngrade,
+} from "@/lib/security/plan";
 
 /**
  * Rate limit Pakasir: 1 request status per 4 detik per transaksi.
@@ -182,6 +185,46 @@ export async function GET(req: NextRequest) {
             },
             { status: 409 }
           );
+        }
+
+        const downgrade = await checkPlanDowngrade(
+          transaction.user_id,
+          transaction.plan
+        );
+
+        if (downgrade.downgrade) {
+          await adminSupabase
+            .from("transactions")
+            .update({
+              status: "canceled",
+              completed_at: upstreamCompletedAt || new Date().toISOString(),
+              is_sandbox: upstreamIsSandbox,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", transaction.id);
+
+          await adminSupabase.from("activity_logs").insert({
+            user_id: transaction.user_id,
+            action: "PAYMENT_DOWNGRADE_BLOCKED",
+            details: {
+              order_id: transaction.order_id,
+              current_plan: downgrade.currentPlan,
+              attempted_plan: transaction.plan,
+              total_payment: transaction.total_payment,
+              refund_required: true,
+              source: "check_status",
+            },
+          });
+
+          return NextResponse.json({
+            status: "canceled",
+            plan: transaction.plan,
+            orderId: transaction.order_id,
+            completedAt: upstreamCompletedAt,
+            isSandbox: upstreamIsSandbox,
+            checkedAt: new Date().toISOString(),
+            upstreamMessage: `Paket ${downgrade.currentPlan.toUpperCase()} masih aktif. Transaksi ${transaction.plan.toUpperCase()} dibatalkan dan ditandai untuk refund.`,
+          });
         }
 
         // Update DB + upgrade paket user

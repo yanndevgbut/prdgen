@@ -3,7 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPakasirStatus, getPakasirTransaction } from "@/lib/payment/pakasir";
 import { isTransactionPriceValid } from "@/lib/payment/verify";
-import { activatePlan } from "@/lib/security/plan";
+import {
+  activatePlan,
+  checkPlanDowngrade,
+} from "@/lib/security/plan";
 
 async function verifyAdmin() {
   const supabase = createClient();
@@ -93,6 +96,44 @@ export async function POST(req: NextRequest) {
               continue;
             }
 
+            const downgrade = await checkPlanDowngrade(
+              trx.user_id,
+              trx.plan
+            );
+
+            if (downgrade.downgrade) {
+              await auth.adminClient
+                .from("transactions")
+                .update({
+                  status: "canceled",
+                  completed_at:
+                    pakasirStatus.completed_at || new Date().toISOString(),
+                  is_sandbox: Boolean(pakasirStatus.is_sandbox),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", trx.id);
+
+              await auth.adminClient.from("activity_logs").insert({
+                user_id: auth.userId,
+                action: "ADMIN_BULK_SYNC_DOWNGRADE_BLOCKED",
+                details: {
+                  order_id: trx.order_id,
+                  target_user_id: trx.user_id,
+                  current_plan: downgrade.currentPlan,
+                  attempted_plan: trx.plan,
+                  total_payment: trx.total_payment,
+                  refund_required: true,
+                },
+              });
+
+              failed.push({
+                order_id: trx.order_id,
+                reason: `Plan ${downgrade.currentPlan.toUpperCase()} masih aktif; transaksi ${trx.plan.toUpperCase()} dibatalkan`,
+              });
+              await new Promise((r) => setTimeout(r, 4500));
+              continue;
+            }
+
             await auth.adminClient
               .from("transactions")
               .update({
@@ -168,6 +209,20 @@ export async function POST(req: NextRequest) {
 
     if (fetchErr || !transaction) {
       return NextResponse.json({ error: "Transaksi tidak ditemukan" }, { status: 404 });
+    }
+
+    const downgrade = await checkPlanDowngrade(
+      transaction.user_id,
+      transaction.plan
+    );
+
+    if (downgrade.downgrade) {
+      return NextResponse.json(
+        {
+          error: `Paket ${downgrade.currentPlan.toUpperCase()} user masih aktif. Transaksi ${transaction.plan.toUpperCase()} tidak boleh menurunkan plan. Ubah plan user secara manual jika memang diperlukan.`,
+        },
+        { status: 409 }
+      );
     }
 
     await auth.adminClient

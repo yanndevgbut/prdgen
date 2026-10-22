@@ -1,5 +1,12 @@
 export type PlanName = "trial" | "basic" | "vip" | "enterprise";
 
+export const PLAN_LEVELS: Record<PlanName, number> = {
+  trial: 0,
+  basic: 1,
+  vip: 2,
+  enterprise: 3,
+};
+
 export function normalizePlan(plan: unknown): PlanName {
   const value = typeof plan === "string" ? plan.toLowerCase() : "trial";
   if (value === "basic" || value === "vip" || value === "enterprise") {
@@ -10,6 +17,17 @@ export function normalizePlan(plan: unknown): PlanName {
 
 export function isPaidPlan(plan: unknown): boolean {
   return normalizePlan(plan) !== "trial";
+}
+
+export function getPlanLevel(plan: unknown): number {
+  return PLAN_LEVELS[normalizePlan(plan)];
+}
+
+export function isPlanDowngrade(
+  currentPlan: unknown,
+  targetPlan: unknown
+): boolean {
+  return getPlanLevel(targetPlan) < getPlanLevel(currentPlan);
 }
 
 /**

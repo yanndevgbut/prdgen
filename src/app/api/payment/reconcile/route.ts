@@ -3,7 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPakasirStatus } from "@/lib/payment/pakasir";
 import { isTransactionPriceValid } from "@/lib/payment/verify";
-import { activatePlan } from "@/lib/security/plan";
+import {
+  activatePlan,
+  checkPlanDowngrade,
+} from "@/lib/security/plan";
 
 /**
  * Rekonsiliasi transaksi pending milik user saat membuka workspace (/app).
@@ -44,6 +47,7 @@ export async function GET(req: NextRequest) {
     let reconciled = 0;
     let upgraded = 0;
     let mismatched = 0;
+    let downgradeBlocked = 0;
     let upgradedPlan: string | null = null;
 
     for (const trx of pendingList) {
@@ -90,6 +94,38 @@ export async function GET(req: NextRequest) {
               expected_amount: expectedAmount,
               expected_total: expectedTotal,
             });
+            continue;
+          }
+
+          const downgrade = await checkPlanDowngrade(trx.user_id, trx.plan);
+
+          if (downgrade.downgrade) {
+            await adminSupabase
+              .from("transactions")
+              .update({
+                status: "canceled",
+                completed_at:
+                  pakasirStatus.completed_at || new Date().toISOString(),
+                is_sandbox: Boolean(pakasirStatus.is_sandbox),
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", trx.id);
+
+            await adminSupabase.from("activity_logs").insert({
+              user_id: trx.user_id,
+              action: "RECONCILE_PAYMENT_DOWNGRADE_BLOCKED",
+              details: {
+                order_id: trx.order_id,
+                current_plan: downgrade.currentPlan,
+                attempted_plan: trx.plan,
+                total_payment: trx.total_payment,
+                refund_required: true,
+                source: "reconcile",
+              },
+            });
+
+            downgradeBlocked += 1;
+            await new Promise((r) => setTimeout(r, 4500));
             continue;
           }
 
@@ -140,7 +176,13 @@ export async function GET(req: NextRequest) {
       await new Promise((r) => setTimeout(r, 4500));
     }
 
-    return NextResponse.json({ reconciled, upgraded, mismatched, upgradedPlan });
+    return NextResponse.json({
+      reconciled,
+      upgraded,
+      mismatched,
+      downgradeBlocked,
+      upgradedPlan,
+    });
   } catch (err: any) {
     console.error("Reconcile payment error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
