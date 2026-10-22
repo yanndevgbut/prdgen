@@ -1117,7 +1117,7 @@ export default function AdminPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] text-muted mb-1">Tahunan (Rp / bln)</label>
+                            <label className="block text-[11px] text-muted mb-1">Tahunan (Rp / tahun)</label>
                             <input
                               type="number"
                               value={pricing.basic_yearly}
@@ -1142,7 +1142,7 @@ export default function AdminPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] text-muted mb-1">Tahunan (Rp / bln)</label>
+                            <label className="block text-[11px] text-muted mb-1">Tahunan (Rp / tahun)</label>
                             <input
                               type="number"
                               value={pricing.vip_yearly}
@@ -1167,7 +1167,7 @@ export default function AdminPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] text-muted mb-1">Tahunan (Rp / bln)</label>
+                            <label className="block text-[11px] text-muted mb-1">Tahunan (Rp / tahun)</label>
                             <input
                               type="number"
                               value={pricing.enterprise_yearly}
@@ -1180,7 +1180,7 @@ export default function AdminPage() {
 
                       {/* Yearly Discount Pct */}
                       <div>
-                        <label className="block text-xs text-muted mb-1">Badge Diskon Tahunan (%)</label>
+                        <label className="block text-xs text-muted mb-1">Diskon Tahunan Cadangan (%)</label>
                         <input
                           type="number"
                           min={0}
@@ -1189,6 +1189,9 @@ export default function AdminPage() {
                           onChange={(e) => setPricing({ ...pricing, yearly_discount_pct: Number(e.target.value) })}
                           className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-white text-xs outline-none"
                         />
+                        <p className="text-[10px] text-dim mt-1">
+                          Badge di halaman pricing dihitung otomatis dari harga aktual. Nilai ini hanya fallback.
+                        </p>
                       </div>
 
                       <button

@@ -638,7 +638,7 @@ VALUES
     ('maintenance_mode', '{"enabled": false, "message": "Kami sedang melakukan peningkatan performa dan update model AI. PRDGen akan kembali aktif dalam beberapa menit.", "eta": "24 Sep 2026, 18:00 WIB"}'::jsonb, 'Status Maintenance Platform', true),
     ('general_settings', '{"site_name": "PRDGen", "free_quota": 3, "default_lang": "id", "allow_registration": true}'::jsonb, 'Pengaturan Umum Platform', true),
     ('credit_plans', '{"trial": 3, "basic": 10, "vip": 0, "enterprise": 0}'::jsonb, 'Konfigurasi Jatah Kredit Harian per Paket (Reset 24 Jam)', true),
-    ('pricing_plans', '{"basic_monthly": 10000, "basic_yearly": 20000, "vip_monthly": 20000, "vip_yearly": 30000, "enterprise_monthly": 50000, "enterprise_yearly": 60000, "yearly_discount_pct": 20}'::jsonb, 'Konfigurasi Harga Paket Berlangganan', true)
+    ('pricing_plans', '{"basic_monthly": 10000, "basic_yearly": 96000, "vip_monthly": 20000, "vip_yearly": 192000, "enterprise_monthly": 50000, "enterprise_yearly": 480000, "yearly_discount_pct": 20}'::jsonb, 'Konfigurasi Harga Paket Berlangganan', true)
 ON CONFLICT (key) DO NOTHING;
 
 -- 6.2 Default AI Models Seed
