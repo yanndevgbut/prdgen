@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
-import { decryptSecret } from "@/lib/security/crypto";
 import { z } from "zod";
 
 const verifyResetOtpSchema = z.object({
   email: z.string().email("Format email tidak valid"),
   otpCode: z.string().length(6, "Kode OTP harus 6 digit angka"),
+  newPassword: z
+    .string()
+    .min(6, "Kata sandi baru minimal 6 karakter")
+    .max(128, "Kata sandi baru maksimal 128 karakter"),
 });
 
 export async function POST(req: NextRequest) {
@@ -33,7 +36,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, otpCode } = validation.data;
+    const { email, otpCode, newPassword } = validation.data;
     const cleanEmail = email.trim().toLowerCase();
     const cleanOtp = otpCode.trim();
     const adminSupabase = createAdminClient();
@@ -105,24 +108,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 6. OTP Valid: Dekripsi password baru lalu update
-    if (!record.encrypted_new_password) {
-      return NextResponse.json(
-        { error: "Password baru tidak ditemukan. Silakan minta kode reset baru." },
-        { status: 400 }
-      );
-    }
-
-    let newPassword: string;
-    try {
-      newPassword = decryptSecret(record.encrypted_new_password)
-    } catch (decryptErr: any) {
-      console.error("Gagal mendekripsi password reset:", decryptErr?.message);
-      return NextResponse.json(
-        { error: "Gagal memproses reset kata sandi. Silakan minta kode baru." },
-        { status: 500 }
-      );
-    }
+    // 6. OTP valid. Password baru dikirim saat verifikasi sehingga tidak perlu
+    // disimpan di database sebelum OTP terbukti benar.
 
     // Cari userId di auth.users (via profiles untuk menghindari listUsers)
     const { data: profile } = await adminSupabase

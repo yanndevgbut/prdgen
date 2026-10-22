@@ -3,7 +3,6 @@ import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, checkRateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
-import { encryptSecret } from "@/lib/security/crypto";
 import { sendPasswordResetEmail } from "@/lib/email/resend";
 import { z } from "zod";
 
@@ -11,7 +10,6 @@ const forgotPasswordSchema = z.object({
   email: z.string().email("Format email tidak valid"),
   turnstileToken: z.string().min(1, "Verifikasi keamanan belum dilakukan").optional(),
   isResend: z.boolean().optional(),
-  newPassword: z.string().min(6, "Kata sandi baru minimal 6 karakter").max(128).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -75,18 +73,11 @@ export async function POST(req: NextRequest) {
     // 4. Bersihkan OTP lama untuk email ini lalu simpan yang baru
     await adminSupabase.from("password_reset_otps").delete().eq("email", cleanEmail);
 
-    // Enkripsi password baru jika ada (tidak pernah plaintext di DB)
-    let encryptedNewPassword: string | null = null;
-    if (validation.data.newPassword) {
-      encryptedNewPassword = encryptSecret(validation.data.newPassword)
-    }
-
     const { error: insertError } = await adminSupabase.from("password_reset_otps").insert({
       email: cleanEmail,
       otp_code: otpCode,
       attempts: 0,
       expires_at: expiresAt,
-      encrypted_new_password: encryptedNewPassword,
     });
 
     if (insertError) {
