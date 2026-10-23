@@ -17,6 +17,29 @@ interface PricingClientProps {
   initialPricing: PricingPlans;
 }
 
+const FAQ_ITEMS = [
+  {
+    question: "Bisa coba gratis dulu?",
+    answer:
+      "Bisa. Setelah daftar, kamu dapat 3 kredit PRD gratis yang di-reset setiap 24 jam.",
+  },
+  {
+    question: "Pembayaran lewat apa?",
+    answer:
+      "QRIS. Bisa dipindai dari aplikasi bank dan dompet digital yang mendukung QRIS.",
+  },
+  {
+    question: "Bisa berhenti kapan saja?",
+    answer:
+      "Bisa. Tidak ada kontrak mengikat. Paket aktif tetap berlaku sampai masa aktifnya habis.",
+  },
+  {
+    question: "Apakah data PRD saya aman?",
+    answer:
+      "PRD hanya bisa diakses oleh pemilik akun. Kami tidak membagikan dokumenmu ke pengguna lain.",
+  },
+];
+
 export function PricingClient({ initialPricing }: PricingClientProps) {
   const router = useRouter();
   const supabase = createClient();
@@ -102,50 +125,25 @@ export function PricingClient({ initialPricing }: PricingClientProps) {
       />
 
       {/* FAQ SECTION */}
-      <section className="py-16 px-4 md:px-8 border-t border-border bg-[#121213]">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-xl md:text-2xl font-bold text-white text-center mb-8">
+      <section className="px-4 md:px-8 py-16 border-t border-border">
+        <div className="max-w-[1040px] mx-auto">
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-8">
             Pertanyaan Umum
           </h2>
-          <div className="space-y-4 text-xs md:text-sm">
-            <div className="p-4 bg-bg-surface border border-border rounded-lg">
-              <div className="font-semibold text-white mb-1">
-                Bisa coba gratis dulu?
+          <div className="max-w-3xl border-t border-border">
+            {FAQ_ITEMS.map((item) => (
+              <div
+                key={item.question}
+                className="border-b border-border py-5"
+              >
+                <h3 className="text-sm font-semibold text-white mb-2">
+                  {item.question}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted">
+                  {item.answer}
+                </p>
               </div>
-              <p className="text-muted">
-                Bisa. Begitu daftar akun, kamu langsung dapat 3 kredit PRD gratis
-                yang di-reset otomatis setiap 24 jam untuk mencoba seluruh fitur
-                generator AI.
-              </p>
-            </div>
-            <div className="p-4 bg-bg-surface border border-border rounded-lg">
-              <div className="font-semibold text-white mb-1">
-                Pembayarannya lewat apa saja?
-              </div>
-              <p className="text-muted">
-                Kami mendukung pembayaran instan melalui QRIS yang dapat di-scan
-                dari aplikasi BCA, Mandiri, BNI, BRI, GoPay, OVO, ShopeePay, dan
-                DANA.
-              </p>
-            </div>
-            <div className="p-4 bg-bg-surface border border-border rounded-lg">
-              <div className="font-semibold text-white mb-1">
-                Bisa cancel langganan kapan saja?
-              </div>
-              <p className="text-muted">
-                Bisa banget. Tidak ada kontrak mengikat, kamu bisa mengubah atau
-                menghentikan paket kapan pun.
-              </p>
-            </div>
-            <div className="p-4 bg-bg-surface border border-border rounded-lg">
-              <div className="font-semibold text-white mb-1">
-                Apakah ide produk saya aman dan terjaga?
-              </div>
-              <p className="text-muted">
-                Sangat aman. Setiap input deskripsi produk dan hasil dokumen PRD
-                dienkripsi dan hanya dapat diakses oleh akun pemiliknya.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
