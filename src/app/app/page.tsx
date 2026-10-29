@@ -811,98 +811,83 @@ export default function WorkspacePage() {
               )}
             </div>
 
-            {/* STEP PROGRESS INDICATOR (CLEAN CIRCULAR NUMBERS ONLY) */}
-            <div className="flex items-center justify-center gap-3 mb-8 text-xs">
+            {/* STEP PROGRESS INDICATOR (CLEAN CIRCULAR NUMBERS WITH LABELS) */}
+            <div className="flex items-center justify-center gap-2 sm:gap-4 mb-8 text-xs">
               <div
                 onClick={() => setCurrentStep(1)}
-                className={`cursor-pointer transition-all ${
-                  currentStep === 1
-                    ? "scale-110"
-                    : "opacity-75 hover:opacity-100"
-                }`}
+                className="cursor-pointer flex items-center gap-2 group transition-all"
                 title="Langkah 1: Ide Produk"
               >
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                   currentStep === 1
-                    ? "bg-primary text-white   ring-2 ring-primary-light/30"
+                    ? "bg-primary text-white ring-2 ring-primary-light/40 shadow-[0_0_12px_rgba(178,58,50,0.4)]"
                     : currentStep > 1
                     ? "bg-emerald-500 text-white"
-                    : "bg-white/10 text-dim"
+                    : "bg-white/10 text-dim group-hover:bg-white/20"
                 }`}>1</span>
+                <span className={`hidden sm:inline text-xs font-medium ${currentStep === 1 ? "text-white font-semibold" : "text-muted"}`}>Ide</span>
               </div>
-              <span className="text-dim font-bold">›</span>
+              <span className="text-dim/50 font-mono text-[10px]">⎯</span>
 
               <div
                 onClick={() => title.trim() && description.trim() && setCurrentStep(2)}
-                className={`cursor-pointer transition-all ${
-                  currentStep === 2
-                    ? "scale-110"
-                    : "opacity-75 hover:opacity-100"
-                }`}
+                className="cursor-pointer flex items-center gap-2 group transition-all"
                 title="Langkah 2: Mode Pengisian"
               >
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                   currentStep === 2
-                    ? "bg-primary text-white   ring-2 ring-primary-light/30"
+                    ? "bg-primary text-white ring-2 ring-primary-light/40 shadow-[0_0_12px_rgba(178,58,50,0.4)]"
                     : currentStep > 2
                     ? "bg-emerald-500 text-white"
-                    : "bg-white/10 text-dim"
+                    : "bg-white/10 text-dim group-hover:bg-white/20"
                 }`}>2</span>
+                <span className={`hidden sm:inline text-xs font-medium ${currentStep === 2 ? "text-white font-semibold" : "text-muted"}`}>Mode</span>
               </div>
-              <span className="text-dim font-bold">›</span>
+              <span className="text-dim/50 font-mono text-[10px]">⎯</span>
 
               <div
                 onClick={() => questions.length > 0 && setCurrentStep(3)}
-                className={`cursor-pointer transition-all ${
-                  currentStep === 3
-                    ? "scale-110"
-                    : "opacity-75 hover:opacity-100"
-                }`}
+                className="cursor-pointer flex items-center gap-2 group transition-all"
                 title="Langkah 3: Tanya Jawab"
               >
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                   currentStep === 3
-                    ? "bg-primary text-white   ring-2 ring-primary-light/30"
+                    ? "bg-primary text-white ring-2 ring-primary-light/40 shadow-[0_0_12px_rgba(178,58,50,0.4)]"
                     : currentStep > 3
                     ? "bg-emerald-500 text-white"
-                    : "bg-white/10 text-dim"
+                    : "bg-white/10 text-dim group-hover:bg-white/20"
                 }`}>3</span>
+                <span className={`hidden sm:inline text-xs font-medium ${currentStep === 3 ? "text-white font-semibold" : "text-muted"}`}>Tanya Jawab</span>
               </div>
-              <span className="text-dim font-bold">›</span>
+              <span className="text-dim/50 font-mono text-[10px]">⎯</span>
 
               <div
                 onClick={() => activePrd && setCurrentStep(4)}
-                className={`cursor-pointer transition-all ${
-                  currentStep === 4
-                    ? "scale-110"
-                    : "opacity-75 hover:opacity-100"
-                }`}
+                className="cursor-pointer flex items-center gap-2 group transition-all"
                 title="Langkah 4: Studio & Revisi"
               >
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                   currentStep === 4
-                    ? "bg-primary text-white   ring-2 ring-primary-light/30"
+                    ? "bg-primary text-white ring-2 ring-primary-light/40 shadow-[0_0_12px_rgba(178,58,50,0.4)]"
                     : currentStep > 4
                     ? "bg-emerald-500 text-white"
-                    : "bg-white/10 text-dim"
+                    : "bg-white/10 text-dim group-hover:bg-white/20"
                 }`}>4</span>
+                <span className={`hidden sm:inline text-xs font-medium ${currentStep === 4 ? "text-white font-semibold" : "text-muted"}`}>Studio</span>
               </div>
-              <span className="text-dim font-bold">›</span>
+              <span className="text-dim/50 font-mono text-[10px]">⎯</span>
 
               <div
                 onClick={() => activePrd?.status === "final" && setCurrentStep(5)}
-                className={`cursor-pointer transition-all ${
-                  currentStep === 5
-                    ? "scale-110"
-                    : "opacity-75 hover:opacity-100"
-                }`}
+                className="cursor-pointer flex items-center gap-2 group transition-all"
                 title="Langkah 5: Selesai"
               >
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                   currentStep === 5
-                    ? "bg-primary text-white   ring-2 ring-primary-light/30"
-                    : "bg-white/10 text-dim"
+                    ? "bg-primary text-white ring-2 ring-primary-light/40 shadow-[0_0_12px_rgba(178,58,50,0.4)]"
+                    : "bg-white/10 text-dim group-hover:bg-white/20"
                 }`}>5</span>
+                <span className={`hidden sm:inline text-xs font-medium ${currentStep === 5 ? "text-white font-semibold" : "text-muted"}`}>Hasil Final</span>
               </div>
             </div>
 
@@ -949,7 +934,7 @@ export default function WorkspacePage() {
                           type="button"
                           key={pIdx}
                           onClick={() => applyPreset(preset)}
-                          className="flex-shrink-0 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-border hover:border-text-dim text-muted hover:text-white rounded-lg text-xs transition-colors cursor-pointer"
+                          className="flex-shrink-0 px-3 py-1.5 bg-white/5 hover:bg-white/[0.08] border border-border hover:border-primary/50 text-muted hover:text-white rounded-lg text-xs transition-all cursor-pointer"
                         >
                           {preset.label}
                         </button>
@@ -1075,10 +1060,10 @@ export default function WorkspacePage() {
                     type="button"
                     onClick={() => setMode("manual")}
                     aria-pressed={mode === "manual"}
-                    className={`aspect-square w-full flex flex-col items-center justify-center gap-2 rounded-xl border px-4 text-center text-white transition-all ${
+                    className={`aspect-square w-full flex flex-col items-center justify-center gap-2 rounded-xl border px-4 text-center text-white transition-all cursor-pointer ${
                       mode === "manual"
-                        ? "bg-[#1A1A1C] border-primary-light/50"
-                        : "bg-bg-input border-border hover:bg-white/5 hover:border-text-dim"
+                        ? "bg-[#1A1A1C] border-primary shadow-[0_0_24px_rgba(178,58,50,0.22)] ring-1 ring-primary/40"
+                        : "bg-bg-input border-border hover:bg-white/5 hover:border-border/80"
                     }`}
                   >
                     <span className="text-base font-semibold">Isi Sendiri</span>
@@ -1091,10 +1076,10 @@ export default function WorkspacePage() {
                     type="button"
                     onClick={() => setMode("ai")}
                     aria-pressed={mode === "ai"}
-                    className={`aspect-square w-full flex flex-col items-center justify-center gap-2 rounded-xl border px-4 text-center text-white transition-all ${
+                    className={`aspect-square w-full flex flex-col items-center justify-center gap-2 rounded-xl border px-4 text-center text-white transition-all cursor-pointer ${
                       mode === "ai"
-                        ? "bg-[#1A1A1C] border-primary-light/50"
-                        : "bg-bg-input border-border hover:bg-white/5 hover:border-text-dim"
+                        ? "bg-[#1A1A1C] border-primary shadow-[0_0_24px_rgba(178,58,50,0.22)] ring-1 ring-primary/40"
+                        : "bg-bg-input border-border hover:bg-white/5 hover:border-border/80"
                     }`}
                   >
                     <span className="text-base font-semibold">Tanya Jawab AI</span>
@@ -1306,10 +1291,27 @@ export default function WorkspacePage() {
 
             {/* ================= STEP 0: LOADING SCREEN ================= */}
             {currentStep === 0 && (
-              <div className="py-20 text-center animate-step-enter">
-                <div className="w-10 h-10 border-3 border-white/10 border-t-primary-light rounded-full animate-spin mx-auto mb-4" />
-                <h2 className="text-lg font-bold text-white mb-1">{loadingText}</h2>
-                <p className="text-xs text-muted">9router AI sedang menyusun spesifikasi dokumen PRD 14 Bab & Roadmap.</p>
+              <div className="py-16 max-w-md mx-auto text-center animate-step-enter">
+                <div className="relative w-14 h-14 mx-auto mb-5 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-2 border-white/10" />
+                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary-light animate-spin" />
+                  <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">{loadingText}</h2>
+                <p className="text-xs text-muted leading-relaxed mb-6">
+                  9router AI sedang menyusun spesifikasi dokumen PRD 14 Bab &amp; Roadmap.
+                </p>
+
+                {/* Shimmer Skeleton Placeholder Card */}
+                <div className="p-4 bg-bg-surface border border-border rounded-xl space-y-3 text-left">
+                  <div className="h-4 w-3/4 rounded animate-shimmer" />
+                  <div className="h-3 w-full rounded animate-shimmer" />
+                  <div className="h-3 w-5/6 rounded animate-shimmer" />
+                  <div className="pt-2 flex gap-2">
+                    <div className="h-5 w-20 rounded animate-shimmer" />
+                    <div className="h-5 w-24 rounded animate-shimmer" />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1352,7 +1354,7 @@ export default function WorkspacePage() {
                       type="button"
                       key={rIdx}
                       onClick={() => handleRevise(revText.replace(/^\+\s*/, ""))}
-                      className="flex-shrink-0 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-border hover:border-text-dim text-muted hover:text-white rounded-lg text-xs transition-colors cursor-pointer"
+                      className="flex-shrink-0 px-3 py-1.5 bg-white/5 hover:bg-white/[0.08] border border-border hover:border-primary/50 text-muted hover:text-white rounded-lg text-xs transition-all cursor-pointer"
                     >
                       {revText}
                     </button>
@@ -1364,9 +1366,9 @@ export default function WorkspacePage() {
                   <button
                     type="button"
                     onClick={() => setActiveStudioTab("doc")}
-                    className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       activeStudioTab === "doc"
-                        ? "bg-primary text-white  "
+                        ? "bg-primary text-white shadow-[0_2px_12px_rgba(178,58,50,0.35)]"
                         : "text-muted hover:text-white hover:bg-bg-surface"
                     }`}
                   >
@@ -1375,9 +1377,9 @@ export default function WorkspacePage() {
                   <button
                     type="button"
                     onClick={() => setActiveStudioTab("flows")}
-                    className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       activeStudioTab === "flows"
-                        ? "bg-primary text-white  "
+                        ? "bg-primary text-white shadow-[0_2px_12px_rgba(178,58,50,0.35)]"
                         : "text-muted hover:text-white hover:bg-bg-surface"
                     }`}
                   >
@@ -1386,9 +1388,9 @@ export default function WorkspacePage() {
                   <button
                     type="button"
                     onClick={() => setActiveStudioTab("roadmap")}
-                    className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       activeStudioTab === "roadmap"
-                        ? "bg-primary text-white  "
+                        ? "bg-primary text-white shadow-[0_2px_12px_rgba(178,58,50,0.35)]"
                         : "text-muted hover:text-white hover:bg-bg-surface"
                     }`}
                   >

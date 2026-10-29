@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Footer } from "@/components/footer";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
+import { HeroPreview } from "@/components/hero-preview";
 
 export const metadata: Metadata = {
   title: `${BRAND_NAME} | ${BRAND_TAGLINE}`,
@@ -56,8 +57,8 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       {/* HERO SECTION */}
-      <section className="py-20 md:py-28 px-4 md:px-8 flex justify-center">
-        <div className="max-w-[1100px] w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <section className="py-20 md:py-28 px-4 md:px-8 flex justify-center ambient-hero">
+        <div className="max-w-[1120px] w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
           {/* Left Text */}
           <div className="lg:col-span-7 flex flex-col">
@@ -67,59 +68,46 @@ export default function HomePage() {
             <p className="text-base md:text-lg text-muted leading-relaxed mb-8 max-w-xl">
               Create PRD otomatis: tulis ide dasarmu, jawab beberapa detail teknis, dan langsung dapat dokumen Product Requirements Document (PRD) terstruktur rapi yang siap dibagiin ke tim developer. Web bikin PRD jadi cepat dan gampang.
             </p>
+
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href="/app"
-                className="px-6 py-3 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg text-center transition-all"
+                className="px-6 py-3.5 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg text-center shadow-[0_4px_20px_-4px_rgba(178,58,50,0.5)] hover:shadow-[0_6px_24px_-2px_rgba(178,58,50,0.65)] hover:-translate-y-0.5 transition-all duration-150"
               >
                 Mulai Bikin PRD Sekarang
               </Link>
               <Link
                 href="#cara-kerja"
-                className="px-6 py-3 bg-bg-surface hover:bg-bg-hover text-muted hover:text-white border border-border text-sm font-medium rounded-lg text-center transition-colors"
+                className="px-6 py-3.5 bg-bg-surface hover:bg-bg-hover text-muted hover:text-white border border-border text-sm font-medium rounded-lg text-center transition-colors"
               >
                 Lihat Cara Kerja
               </Link>
             </div>
+
+            {/* Feature Highlights Pills */}
+            <div className="mt-8 flex flex-wrap items-center gap-2 pt-6 border-t border-border/50 text-[11px] text-dim">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.02] border border-border/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-light" />
+                14 Bab Dokumen Lengkap
+              </span>
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.02] border border-border/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-light" />
+                User Flows & Roadmap
+              </span>
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.02] border border-border/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Ekspor Markdown & PDF
+              </span>
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.02] border border-border/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Gratis 3 Kredit Harian
+              </span>
+            </div>
           </div>
 
-          {/* Right Visual Mockup */}
+          {/* Right Visual Mockup (Interactive Preview) */}
           <div className="lg:col-span-5">
-            <div className="bg-bg-surface border border-border rounded-xl p-5">
-              <div className="flex items-center gap-2 pb-3 mb-4 border-b border-border text-xs text-dim">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                <span className="ml-2 font-mono text-[11px] text-muted">PRD_Ecommerce_v1.md</span>
-              </div>
-              <div className="text-sm font-bold text-white mb-2">Platform E-Commerce Multivendor</div>
-              
-              <div className="text-xs font-semibold text-ink-soft mt-3 mb-1">1. Ringkasan Produk</div>
-              <p className="text-xs text-muted leading-relaxed mb-3">
-                Marketplace modern untuk memudahkan toko online berjualan dengan pembayaran otomatis dan pelacakan kurir.
-              </p>
-              
-              <div className="text-xs font-semibold text-ink-soft mt-3 mb-1">2. Spesifikasi Teknis</div>
-              <p className="text-xs text-muted leading-relaxed mb-3">
-                Next.js App Router, Tailwind CSS, Supabase PostgreSQL, Midtrans Payment Gateway.
-              </p>
-
-              <div className="text-xs font-semibold text-ink-soft mt-3 mb-1">3. Task Breakdown Sprint</div>
-              <ul className="text-xs text-muted space-y-1.5 ml-1 list-none">
-                <li className="flex items-center gap-1.5 text-emerald-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>Desain skema tabel database & model data</span>
-                </li>
-                <li className="flex items-center gap-1.5 text-emerald-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>Implementasi katalog produk & keranjang</span>
-                </li>
-                <li className="flex items-center gap-1.5 text-muted">
-                  <span className="w-1.5 h-1.5 rounded-full bg-dim" />
-                  <span>Integrasi webhook payment gateway & kurir</span>
-                </li>
-              </ul>
-            </div>
+            <HeroPreview />
           </div>
 
         </div>
@@ -128,41 +116,55 @@ export default function HomePage() {
       {/* CARA KERJA SECTION */}
       <section className="py-20 px-4 md:px-8 border-t border-border bg-[#121213]" id="cara-kerja">
         <div className="max-w-[1100px] mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2 text-white">
-            4 Langkah simpel dari ide sampai jadi PRD
-          </h2>
-          <p className="text-sm md:text-base text-muted mb-12">
-            Nggak perlu pusing mikirin template manual yang berantakan. Ikuti alur cepat ini:
-          </p>
+          <div className="max-w-xl mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2 text-white">
+              4 Langkah simpel dari ide sampai jadi PRD
+            </h2>
+            <p className="text-sm md:text-base text-muted">
+              Nggak perlu pusing mikirin template manual yang berantakan. Ikuti alur cepat ini:
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div className="bg-bg-surface border border-border rounded-xl p-5 flex flex-col">
-              <div className="text-xs font-bold text-muted mb-2">Langkah 1</div>
-              <h3 className="text-sm font-semibold text-white mb-2">Tulis ide produk</h3>
+            <div className="group bg-bg-surface border border-border hover:border-primary/40 rounded-xl p-5 flex flex-col transition-all duration-200">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-mono uppercase text-dim tracking-wider">Tahap 01</span>
+                <span className="w-2 h-2 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+              </div>
+              <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-ink transition-colors">Tulis ide produk</h3>
               <p className="text-xs text-muted leading-relaxed">
                 Ketik konsep awal, masalah yang mau diselesaikan, atau fitur utama produkmu.
               </p>
             </div>
 
-            <div className="bg-bg-surface border border-border rounded-xl p-5 flex flex-col">
-              <div className="text-xs font-bold text-muted mb-2">Langkah 2</div>
-              <h3 className="text-sm font-semibold text-white mb-2">Lengkapi detail</h3>
+            <div className="group bg-bg-surface border border-border hover:border-primary/40 rounded-xl p-5 flex flex-col transition-all duration-200">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-mono uppercase text-dim tracking-wider">Tahap 02</span>
+                <span className="w-2 h-2 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+              </div>
+              <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-ink transition-colors">Lengkapi detail</h3>
               <p className="text-xs text-muted leading-relaxed">
                 Pilih atau ketik preferensi tech stack, database, target audiens, dan integrasi pihak ketiga.
               </p>
             </div>
 
-            <div className="bg-bg-surface border border-border rounded-xl p-5 flex flex-col">
-              <div className="text-xs font-bold text-muted mb-2">Langkah 3</div>
-              <h3 className="text-sm font-semibold text-white mb-2">Edit & revisi</h3>
+            <div className="group bg-bg-surface border border-border hover:border-primary/40 rounded-xl p-5 flex flex-col transition-all duration-200">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-mono uppercase text-dim tracking-wider">Tahap 03</span>
+                <span className="w-2 h-2 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+              </div>
+              <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-ink transition-colors">Edit & revisi</h3>
               <p className="text-xs text-muted leading-relaxed">
                 Lihat draf PRD yang disusun AI dan berikan instruksi revisi instan jika ada yang ingin disesuaikan.
               </p>
             </div>
 
-            <div className="bg-bg-surface border border-border rounded-xl p-5 flex flex-col">
-              <div className="text-xs font-bold text-muted mb-2">Langkah 4</div>
-              <h3 className="text-sm font-semibold text-white mb-2">Download & bagikan</h3>
+            <div className="group bg-bg-surface border border-border hover:border-primary/40 rounded-xl p-5 flex flex-col transition-all duration-200">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-mono uppercase text-dim tracking-wider">Tahap 04</span>
+                <span className="w-2 h-2 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+              </div>
+              <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-ink transition-colors">Download & bagikan</h3>
               <p className="text-xs text-muted leading-relaxed">
                 Tinggal salin teks ke clipboard atau unduh file format Markdown (.md) dan PDF untuk developer.
               </p>
@@ -172,17 +174,18 @@ export default function HomePage() {
       </section>
 
       {/* CTA SECTION */}
-      <section className="py-20 px-4 md:px-8 border-t border-border text-center">
-        <div className="max-w-xl mx-auto flex flex-col items-center">
+      <section className="py-24 px-4 md:px-8 border-t border-border text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-radial from-primary/10 via-transparent to-transparent opacity-50 pointer-events-none" />
+        <div className="max-w-xl mx-auto flex flex-col items-center relative z-10">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 text-white">
             Mau coba buat PRD tanpa ribet sekarang?
           </h2>
-          <p className="text-sm md:text-base text-muted mb-8">
+          <p className="text-sm md:text-base text-muted mb-8 leading-relaxed">
             Create PRD otomatis, cepat, rapi, dan langsung bisa dieksekusi oleh tim engineering.
           </p>
           <Link
             href="/app"
-            className="px-8 py-3.5 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg transition-all"
+            className="px-8 py-3.5 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg shadow-[0_4px_24px_-4px_rgba(178,58,50,0.55)] hover:shadow-[0_8px_30px_rgba(178,58,50,0.7)] hover:-translate-y-0.5 transition-all duration-150"
           >
             Buka Workspace Gratis
           </Link>

@@ -25,6 +25,17 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow-x: hidden;
   line-height: 1.5;
+  caret-color: #FF8A8A;
+}
+
+::selection {
+  background: rgba(178, 58, 50, 0.35);
+  color: #F2F0EB;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(255, 138, 138, 0.6);
+  outline-offset: 2px;
 }
 
 /* Custom scrollbar */
@@ -144,4 +155,32 @@ body {
 
 .animate-pulse-subtle {
   animation: pulseSubtle 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.02) 25%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0.02) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.ambient-hero {
+  background-image: radial-gradient(
+    circle at 50% -10%,
+    rgba(178, 58, 50, 0.16) 0%,
+    rgba(14, 14, 15, 0) 65%
+  );
 }

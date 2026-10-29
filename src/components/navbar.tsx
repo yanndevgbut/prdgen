@@ -56,32 +56,32 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-40 px-4 md:px-8 py-3.5 flex items-center justify-between bg-[#0E0E0F] border-b border-white/[0.08]">
+      <nav className="fixed top-0 left-0 right-0 z-40 px-4 md:px-8 py-3 flex items-center justify-between backdrop-blur-md bg-[#0E0E0F]/85 border-b border-border/75 transition-all">
         {/* Brand */}
-        <Link href="/" className="text-white font-bold text-lg tracking-tight">
-          PRD<span className="text-primary-light">Gen</span>
+        <Link href="/" className="group text-white font-bold text-lg tracking-tight flex items-center gap-1">
+          <span>PRD</span><span className="text-primary-light group-hover:text-primary transition-colors">Gen</span>
         </Link>
 
         {/* Desktop Links */}
-        <ul className="hidden md:flex items-center gap-6 list-none text-sm font-medium text-muted">
+        <ul className="hidden md:flex items-center gap-1 list-none text-xs font-medium text-muted">
           <li>
-            <Link href="/" className="hover:text-white transition-colors">
+            <Link href="/" className="px-3 py-1.5 rounded-md hover:text-white hover:bg-white/[0.04] transition-colors">
               Beranda
             </Link>
           </li>
           <li>
-            <Link href="/pricing" className="hover:text-white transition-colors">
+            <Link href="/pricing" className="px-3 py-1.5 rounded-md hover:text-white hover:bg-white/[0.04] transition-colors">
               Pricing
             </Link>
           </li>
           <li>
-            <Link href="/app" className="hover:text-white transition-colors">
+            <Link href="/app" className="px-3 py-1.5 rounded-md hover:text-white hover:bg-white/[0.04] transition-colors">
               Workspace
             </Link>
           </li>
           {isAdmin && (
             <li>
-              <Link href="/admin" className="text-primary-light transition-colors font-semibold">
+              <Link href="/admin" className="px-3 py-1.5 rounded-md text-primary-light hover:bg-primary/10 transition-colors font-semibold">
                 Admin Panel
               </Link>
             </li>
@@ -94,13 +94,13 @@ export function Navbar() {
             <div className="hidden sm:flex items-center gap-2">
               <Link
                 href="/login"
-                className="text-xs font-medium text-muted hover:text-white transition-colors px-2 py-1"
+                className="text-xs font-medium text-muted hover:text-white transition-colors px-2.5 py-1.5 rounded-md hover:bg-white/[0.04]"
               >
                 Masuk
               </Link>
               <Link
                 href="/register"
-                className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg transition-colors"
+                className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg shadow-[0_2px_10px_rgba(178,58,50,0.3)] hover:shadow-[0_4px_16px_rgba(178,58,50,0.45)] transition-all"
               >
                 Daftar
               </Link>
@@ -114,7 +114,7 @@ export function Navbar() {
           {/* Hamburger Button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-1.5 rounded-lg border border-border bg-bg-surface text-muted hover:text-white transition-colors flex items-center justify-center"
+            className="p-1.5 rounded-lg border border-border bg-bg-surface text-muted hover:text-white hover:border-border/80 transition-colors flex items-center justify-center cursor-pointer"
             aria-label="Toggle Menu"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -131,7 +131,7 @@ export function Navbar() {
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/65 animate-backdrop-fade"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm animate-backdrop-fade"
             onClick={() => setMenuOpen(false)}
           />
 
