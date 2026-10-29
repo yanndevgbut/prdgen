@@ -9,7 +9,7 @@ import {
   motion,
   useReducedMotion,
 } from "motion/react";
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
 import {
   getPlanBasePrice,
@@ -112,10 +112,6 @@ export function PricingSection({
               : { duration: 0.4, ease: "easeOut" }
           }
         >
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.16em] uppercase text-primary-light bg-primary/10 border border-primary/20 rounded-full px-3 py-1 mb-4">
-            <Sparkles className="w-3 h-3" />
-            Paket PRDGen
-          </div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-3">
             Pilih paket sesuai kebutuhanmu
           </h1>
