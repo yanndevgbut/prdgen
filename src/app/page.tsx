@@ -83,26 +83,6 @@ export default function HomePage() {
                 Lihat Cara Kerja
               </Link>
             </div>
-
-            {/* Feature Highlights Pills */}
-            <div className="mt-8 flex flex-wrap items-center gap-2 pt-6 border-t border-border/50 text-[11px] text-dim">
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.02] border border-border/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary-light" />
-                14 Bab Dokumen Lengkap
-              </span>
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.02] border border-border/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary-light" />
-                User Flows & Roadmap
-              </span>
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.02] border border-border/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Ekspor Markdown & PDF
-              </span>
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/[0.02] border border-border/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Gratis 3 Kredit Harian
-              </span>
-            </div>
           </div>
 
           {/* Right Visual Mockup (Interactive Preview) */}
