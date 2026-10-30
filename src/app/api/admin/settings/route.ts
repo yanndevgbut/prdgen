@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateSafePublicUrl } from "@/lib/security/ssrf";
 
 const SECRET_FIELDS: Record<string, string[]> = {
   ai_config: ["api_key"],
@@ -107,6 +108,17 @@ export async function POST(req: NextRequest) {
         }
         // Jangan simpan metadata UI ke database.
         delete (nextValue as Record<string, any>)[`${field}_set`];
+      }
+    }
+
+    // SSRF Guard: Validasi baseUrl untuk ai_config dan pakasir_config
+    if ((key === "ai_config" || key === "pakasir_config") && nextValue?.base_url) {
+      const urlCheck = validateSafePublicUrl(nextValue.base_url);
+      if (!urlCheck.valid) {
+        return NextResponse.json(
+          { error: `URL ${key} tidak aman: ${urlCheck.error}` },
+          { status: 400 }
+        );
       }
     }
 

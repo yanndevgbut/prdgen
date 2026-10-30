@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { test9routerConnection } from "@/lib/ai/9router";
+import { validateSafePublicUrl } from "@/lib/security/ssrf";
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,6 +31,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Payload JSON tidak valid." }, { status: 400 });
     }
     const { baseUrl, apiKey, model } = body;
+
+    if (baseUrl) {
+      const urlValidation = validateSafePublicUrl(baseUrl);
+      if (!urlValidation.valid) {
+        return NextResponse.json(
+          { success: false, latencyMs: 0, responseMessage: `SSRF Guard: ${urlValidation.error}` },
+          { status: 400 }
+        );
+      }
+    }
 
     const result = await test9routerConnection({
       baseUrl,

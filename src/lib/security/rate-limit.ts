@@ -64,11 +64,12 @@ export function getClientIp(req: Request | NextRequest): string {
   const platformIp = (req as NextRequest).ip;
   if (platformIp) return platformIp;
 
-  const realIp = headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
-
+  // Cloudflare IP paling terpercaya saat berjalan di balik Cloudflare CDN
   const cloudflareIp = headers.get("cf-connecting-ip");
   if (cloudflareIp) return cloudflareIp.trim();
+
+  const realIp = headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
 
   const forwardedFor = headers.get("x-forwarded-for");
   if (forwardedFor) {
