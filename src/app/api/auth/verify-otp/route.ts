@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Verifikasi OTP berhasil. Akun Anda telah aktif!",
+      message: "Verifikasi berhasil. Akunmu sudah aktif.",
       email: cleanEmail,
     });
   } catch (err: any) {

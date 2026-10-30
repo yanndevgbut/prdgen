@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
     setSuccessMsg(null);
 
     if (!email.trim()) {
-      setErrorMsg("Harap masukkan alamat email akun Anda.");
+      setErrorMsg("Masukkan alamat email akunmu.");
       return;
     }
 
@@ -123,7 +123,7 @@ export default function ForgotPasswordPage() {
       setCanResend(false);
       setTurnstileToken("");
       setTurnstileResetKey((k) => k + 1);
-      setSuccessMsg("Kode verifikasi baru telah dikirimkan ke email Anda.");
+      setSuccessMsg("Kode verifikasi baru sudah dikirim ke emailmu.");
       otpInputRefs.current[0]?.focus();
     } catch (err: any) {
       setErrorMsg(err.message);
@@ -289,7 +289,7 @@ export default function ForgotPasswordPage() {
             </form>
 
             <div className="mt-6 text-center text-xs text-muted">
-              Ingat kata sandi Anda?{" "}
+              Ingat kata sandimu?{" "}
               <Link href="/login" className="text-primary-light font-medium hover:underline">
                 Kembali ke Login
               </Link>

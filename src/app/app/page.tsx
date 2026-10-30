@@ -172,7 +172,7 @@ export default function WorkspacePage() {
           if (refreshed) {
             setProfile(refreshed);
             showToast(
-              `Pembayaran terkonfirmasi. Paket ${(refreshed.plan || "").toUpperCase()} Anda telah aktif!`
+              `Pembayaran terkonfirmasi. Paket ${(refreshed.plan || "").toUpperCase()} kamu sudah aktif.`
             );
           }
         }
@@ -1159,7 +1159,7 @@ export default function WorkspacePage() {
                             onChange={(e) =>
                               setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
                             }
-                            placeholder={q.placeholder || "Ketik jawaban Anda di sini..."}
+                            placeholder={q.placeholder || "Ketik jawabanmu di sini..."}
                             className="w-full px-3.5 py-2.5 bg-bg-input border border-border focus:border-primary-light rounded-lg text-white text-xs outline-none transition-colors"
                           />
                         ) : q.type === "single_select" && q.options ? (
@@ -1639,7 +1639,7 @@ export default function WorkspacePage() {
                   </span>
                 </div>
                 <p className="text-sm text-muted mb-4">
-                  Dokumen telah difinalkan. Anda dapat menyalin teks atau mengunduh file untuk tim pengembang.
+                  PRD sudah final. Salin teksnya atau unduh file untuk tim developer.
                 </p>
 
                 {/* Step 5 Action Bar */}

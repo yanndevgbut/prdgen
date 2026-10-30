@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Transaksi tidak ditemukan. Pastikan Anda login dengan akun yang sama saat pembayaran.",
+            "Transaksi tidak ditemukan. Masuk dengan akun yang sama seperti saat membayar.",
         },
         { status: 404 }
       );

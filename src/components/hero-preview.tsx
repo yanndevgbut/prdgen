@@ -231,7 +231,7 @@ export function HeroPreview() {
         {/* Footer info bar */}
         <div className="px-5 py-2.5 bg-[#111112] border-t border-border/80 flex items-center justify-between text-[11px] text-dim">
           <span>14 Bab PRD • Format Markdown (.md)</span>
-          <span className="text-emerald-400 font-mono">100% Ready for Dev</span>
+          <span className="text-emerald-400 font-mono">Siap diserahkan ke developer</span>
         </div>
       </div>
     </div>

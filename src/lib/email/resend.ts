@@ -60,12 +60,12 @@ export function renderOTPEmailHtml(params: {
           <!-- Greeting & Main Message -->
           <tr>
             <td style="padding-top:28px;">
-              <h1 style="font-size:20px; font-weight:700; color:#ffffff; margin:0 0 12px 0; letter-spacing:-0.3px;">Verifikasi Akun Anda</h1>
+              <h1 style="font-size:20px; font-weight:700; color:#ffffff; margin:0 0 12px 0; letter-spacing:-0.3px;">Verifikasi akunmu</h1>
               <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin:0 0 8px 0;">
                 Halo ${escapeHtml(params.fullName || "Pengguna")},
               </p>
               <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin:0 0 28px 0;">
-                Gunakan kode verifikasi (OTP) berikut untuk menyelesaikan proses pendaftaran akun Anda di platform PRDGen:
+                Gunakan kode verifikasi (OTP) berikut untuk menyelesaikan pendaftaran akunmu di PRDGen:
               </p>
             </td>
           </tr>
@@ -83,10 +83,10 @@ export function renderOTPEmailHtml(params: {
           <tr>
             <td>
               <p style="font-size:12px; color:#64748b; line-height:1.6; margin:0 0 24px 0;">
-                Kode verifikasi ini hanya berlaku selama <strong>10 menit</strong>. Demi keamanan akun Anda, jangan berikan kode ini kepada siapa pun.
+                Kode verifikasi ini hanya berlaku selama <strong>10 menit</strong>. Jangan berikan kode ini kepada siapa pun.
               </p>
               <p style="font-size:12px; color:#64748b; line-height:1.6; margin:0 0 24px 0;">
-                Jika Anda tidak merasa mendaftar di PRDGen, abaikan email ini dengan aman.
+                Kalau kamu tidak mendaftar di PRDGen, abaikan email ini.
               </p>
             </td>
           </tr>
@@ -189,7 +189,7 @@ export function renderResetPasswordEmailHtml(params: {
                 Halo ${escapeHtml(params.fullName || "Pengguna")},
               </p>
               <p style="font-size:14px; color:#94a3b8; line-height:1.6; margin:0 0 28px 0;">
-                Kami menerima permintaan untuk mengatur ulang kata sandi akun PRDGen Anda. Gunakan kode OTP 6-digit berikut:
+                Kami menerima permintaan untuk mengatur ulang kata sandi akun PRDGen-mu. Gunakan kode OTP 6 digit berikut:
               </p>
             </td>
           </tr>
@@ -207,7 +207,7 @@ export function renderResetPasswordEmailHtml(params: {
           <tr>
             <td>
               <p style="font-size:12px; color:#64748b; line-height:1.6; margin:0 0 24px 0;">
-                Kode OTP ini hanya berlaku selama <strong>10 menit</strong>. Jika Anda tidak pernah meminta reset kata sandi, akun Anda tetap aman dan Anda dapat mengabaikan email ini.
+                Kode OTP ini hanya berlaku selama <strong>10 menit</strong>. Kalau kamu tidak meminta reset kata sandi, abaikan email ini. Akunmu tetap aman.
               </p>
             </td>
           </tr>

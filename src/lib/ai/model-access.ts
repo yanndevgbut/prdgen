@@ -58,7 +58,7 @@ export async function resolveModelForPlan(
       return {
         error: `Model AI "${data.name}" membutuhkan paket ${String(
           data.min_tier
-        ).toUpperCase()} ke atas. Silakan upgrade paket Anda untuk menggunakan model ini.`,
+        ).toUpperCase()} ke atas. Upgrade paketmu untuk memakai model ini.`,
         status: 403,
       };
     }
@@ -91,7 +91,7 @@ export async function resolveModelForPlan(
 
   if (!chosen) {
     return {
-      error: "Tidak ada model AI yang tersedia untuk paket Anda.",
+      error: "Belum ada model AI yang tersedia untuk paketmu. Coba lagi nanti atau hubungi admin.",
       status: 403,
     };
   }

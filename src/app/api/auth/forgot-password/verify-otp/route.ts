@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Kata sandi akun Anda berhasil diperbarui! Silakan masuk dengan kata sandi baru.",
+      message: "Kata sandi berhasil diperbarui. Masuk dengan kata sandi baru.",
     });
   } catch (err: any) {
     console.error("API Verify Reset OTP Error:", err);

@@ -134,7 +134,7 @@ export default function RegisterPage() {
       setCanResend(false);
       setTurnstileToken("");
       setTurnstileResetKey((k) => k + 1);
-      setSuccessMsg("Kode verifikasi baru telah dikirimkan ke email Anda.");
+      setSuccessMsg("Kode verifikasi baru sudah dikirim ke emailmu.");
       otpInputRefs.current[0]?.focus();
     } catch (err: any) {
       setErrorMsg(err.message);

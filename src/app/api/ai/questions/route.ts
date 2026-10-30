@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 
     if (profile?.status === "banned") {
       return NextResponse.json(
-        { error: "Akun Anda telah dinonaktifkan oleh administrator." },
+        { error: "Akunmu dinonaktifkan oleh administrator. Hubungi admin untuk info lebih lanjut." },
         { status: 403 }
       );
     }

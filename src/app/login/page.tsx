@@ -43,7 +43,7 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Gagal masuk. Periksa email dan password Anda.");
+        throw new Error(data.error || "Email atau kata sandi salah. Cek lagi lalu coba masuk ulang.");
       }
 
       setSuccessMsg("Berhasil masuk! Membuka Workspace...");
@@ -52,7 +52,7 @@ export default function LoginPage() {
         router.refresh();
       }, 500);
     } catch (err: any) {
-      setErrorMsg(err.message || "Gagal masuk. Periksa email dan password Anda.");
+      setErrorMsg(err.message || "Email atau kata sandi salah. Cek lagi lalu coba masuk ulang.");
       // Token Turnstile hanya sekali pakai, jadi perlu token baru
       setTurnstileToken("");
       setTurnstileResetKey((k) => k + 1);
@@ -66,7 +66,7 @@ export default function LoginPage() {
       <div className="w-full max-w-[380px] bg-bg-surface border border-border rounded-xl p-6 md:p-8">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-white mb-1 tracking-tight">Masuk ke akun</h1>
-          <p className="text-xs text-muted">Buka riwayat dan lanjutkan pembuatan PRD Anda.</p>
+          <p className="text-xs text-muted">Buka riwayat dan lanjutkan PRD-mu.</p>
         </div>
 
         {errorMsg && (

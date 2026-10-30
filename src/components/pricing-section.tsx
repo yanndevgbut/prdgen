@@ -121,7 +121,7 @@ export function PricingSection({
 
           {effectivePlan !== "trial" && (
             <p className="text-xs text-muted mb-4">
-              Paket aktif Anda:{" "}
+              Paket aktifmu:{" "}
               <span className="text-white font-semibold">
                 {effectivePlan.toUpperCase()}
               </span>
@@ -337,7 +337,7 @@ export function PricingSection({
                   disabled={unavailable}
                   title={
                     unavailable
-                      ? `Paket ${effectivePlan.toUpperCase()} Anda masih aktif`
+                      ? `Paket ${effectivePlan.toUpperCase()} kamu masih aktif`
                       : undefined
                   }
                   className={`w-full py-2.5 text-xs font-semibold rounded-lg text-center transition-all ${

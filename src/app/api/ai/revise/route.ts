@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     if (profile?.status === "banned") {
       return NextResponse.json(
-        { error: "Akun Anda telah dinonaktifkan oleh administrator." },
+        { error: "Akunmu dinonaktifkan oleh administrator. Hubungi admin untuk info lebih lanjut." },
         { status: 403 }
       );
     }
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
 
     if (fetchError || !currentPrd) {
       return NextResponse.json(
-        { error: "Dokumen PRD tidak ditemukan atau Anda tidak memiliki akses." },
+        { error: "PRD tidak ditemukan atau kamu tidak punya akses. Buka ulang dari riwayat." },
         { status: 404 }
       );
     }

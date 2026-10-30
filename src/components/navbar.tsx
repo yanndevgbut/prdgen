@@ -183,7 +183,7 @@ export function Navbar() {
                 </div>
               ) : (
                 <div className="p-3 bg-bg-surface border border-border rounded-xl space-y-2">
-                  <div className="text-xs text-muted">Akses akun Anda untuk mengelola PRD:</div>
+                  <div className="text-xs text-muted">Akses akunmu untuk mengelola PRD:</div>
                   <div className="grid grid-cols-2 gap-2">
                     <Link
                       href="/login"

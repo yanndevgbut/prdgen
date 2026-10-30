@@ -94,10 +94,10 @@ export function PromoUpgradeModal({
         {/* Content */}
         <div className="relative z-10">
           <h3 className="text-xl font-extrabold text-white tracking-tight mb-2">
-            Upgrade ke VIP & Bikin PRD Tanpa Batas!
+            Upgrade ke VIP untuk PRD tanpa batas harian
           </h3>
           <p className="text-xs text-muted leading-relaxed mb-4">
-            Anda saat ini menggunakan paket <strong className="text-ink uppercase">{userPlan || "Trial"}</strong>. Upgrade ke VIP untuk membuka akses model AI premium & pembuatan PRD tanpa batas harian:
+            Kamu saat ini memakai paket <strong className="text-ink uppercase">{userPlan || "Trial"}</strong>. Upgrade ke VIP untuk membuka akses model AI premium dan pembuatan PRD tanpa batas harian:
           </p>
 
           <ul className="space-y-2 text-xs text-muted mb-6">

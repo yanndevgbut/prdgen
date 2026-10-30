@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     if (profile.status === "banned") {
       return NextResponse.json(
-        { error: "Akun Anda telah dinonaktifkan oleh administrator." },
+        { error: "Akunmu dinonaktifkan oleh administrator. Hubungi admin untuk info lebih lanjut." },
         { status: 403 }
       );
     }
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     if (isPlanDowngrade(currentPlan, plan)) {
       return NextResponse.json(
         {
-          error: `Paket ${currentPlan.toUpperCase()} Anda masih aktif. Paket ${plan.toUpperCase()} tidak dapat dibeli karena lebih rendah. Pilih paket yang sama untuk perpanjangan atau paket yang lebih tinggi.`,
+          error: `Paket ${currentPlan.toUpperCase()} kamu masih aktif. Paket ${plan.toUpperCase()} tidak dapat dibeli karena lebih rendah. Pilih paket yang sama untuk perpanjangan atau paket yang lebih tinggi.`,
         },
         { status: 409 }
       );

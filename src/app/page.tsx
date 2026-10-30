@@ -7,15 +7,7 @@ import { HeroPreview } from "@/components/hero-preview";
 export const metadata: Metadata = {
   title: `${BRAND_NAME} | ${BRAND_TAGLINE}`,
   description:
-    "Create PRD / buat dokumen Product Requirements Document (PRD) otomatis dan terstruktur dengan AI. Web bikin PRD tanpa ribet, siap dibagikan ke tim developer.",
-  keywords: [
-    "create PRD",
-    "buat PRD tanpa ribet",
-    "web bikin PRD",
-    "PRD generator",
-    "product requirements document",
-    "dokumen PRD AI",
-  ],
+    "Tulis ide produk dalam beberapa kalimat. PRDGen menyusun PRD 14 bab lengkap berisi user flow, skema database, dan daftar tugas sprint, siap diunduh sebagai Markdown atau PDF.",
 };
 
 const faqJsonLd = {
@@ -27,23 +19,23 @@ const faqJsonLd = {
       name: `Apa itu ${BRAND_NAME}?`,
       acceptedAnswer: {
         "@type": "Answer",
-        text: `${BRAND_NAME} adalah web bikin PRD berbasis AI yang membantu Anda membuat Product Requirements Document (PRD) otomatis dan terstruktur tanpa ribet.`,
+        text: `${BRAND_NAME} adalah generator Product Requirements Document (PRD) yang membantu kamu menyusun dokumen spesifikasi produk 14 bab lengkap dalam bahasa Indonesia.`,
       },
     },
     {
       "@type": "Question",
-      name: `Bagaimana cara buat PRD di ${BRAND_NAME}?`,
+      name: `Bagaimana cara menyusun PRD di ${BRAND_NAME}?`,
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Tulis ide produk, jawab beberapa detail teknis, lalu AI menyusun dokumen PRD lengkap yang siap dibagikan ke tim developer.",
+        text: "Tulis ide produk, jawab beberapa pertanyaan teknis dari AI, lalu periksa draf PRD 14 bab lengkap yang siap diserahkan ke tim developer.",
       },
     },
     {
       "@type": "Question",
-      name: `Apakah ${BRAND_NAME} bisa dipakai gratis?`,
+      name: `Apakah ${BRAND_NAME} bisa dicoba gratis?`,
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Bisa. Setiap akun baru mendapat 3 kredit PRD gratis yang di-reset otomatis setiap 24 jam untuk mencoba seluruh fitur generator PRD AI sebelum memilih paket berbayar.",
+        text: "Bisa. Setiap akun baru mendapat 3 kredit gratis yang terisi ulang otomatis setiap 24 jam untuk mencoba seluruh fitur sebelum memilih paket berbayar.",
       },
     },
   ],
@@ -63,10 +55,10 @@ export default function HomePage() {
           {/* Left Text */}
           <div className="lg:col-span-7 flex flex-col">
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight mb-4 text-white">
-              Buat PRD Tanpa Ribet dengan AI
+              Dari ide tiga kalimat ke PRD yang siap dikerjakan tim
             </h1>
             <p className="text-base md:text-lg text-muted leading-relaxed mb-8 max-w-xl">
-              Create PRD otomatis: tulis ide dasarmu, jawab beberapa detail teknis, dan langsung dapat dokumen Product Requirements Document (PRD) terstruktur rapi yang siap dibagiin ke tim developer. Web bikin PRD jadi cepat dan gampang.
+              Ceritakan produkmu, jawab beberapa pertanyaan tentang pengguna dan tech stack, lalu dapatkan PRD 14 bab: user flow, skema database, sampai daftar tugas sprint.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -74,13 +66,13 @@ export default function HomePage() {
                 href="/app"
                 className="px-6 py-3.5 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg text-center shadow-[0_4px_20px_-4px_rgba(178,58,50,0.5)] hover:shadow-[0_6px_24px_-2px_rgba(178,58,50,0.65)] hover:-translate-y-0.5 transition-all duration-150"
               >
-                Mulai Bikin PRD Sekarang
+                Mulai Susun PRD
               </Link>
               <Link
                 href="#cara-kerja"
                 className="px-6 py-3.5 bg-bg-surface hover:bg-bg-hover text-muted hover:text-white border border-border text-sm font-medium rounded-lg text-center transition-colors"
               >
-                Lihat Cara Kerja
+                Lihat Alur Kerja
               </Link>
             </div>
           </div>
@@ -98,10 +90,10 @@ export default function HomePage() {
         <div className="max-w-[1100px] mx-auto">
           <div className="max-w-xl mb-12">
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2 text-white">
-              4 Langkah simpel dari ide sampai jadi PRD
+              Dari ide mentah sampai siap dibaca developer
             </h2>
             <p className="text-sm md:text-base text-muted">
-              Nggak perlu pusing mikirin template manual yang berantakan. Ikuti alur cepat ini:
+              Alur nyata dari contoh marketplace kerajinan Jogja dengan pembayaran QRIS:
             </p>
           </div>
 
@@ -113,7 +105,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-ink transition-colors">Tulis ide produk</h3>
               <p className="text-xs text-muted leading-relaxed">
-                Ketik konsep awal, masalah yang mau diselesaikan, atau fitur utama produkmu.
+                Ketik konsep awal: marketplace kerajinan UMKM Jogja dengan pembayaran QRIS dan kurir lokal.
               </p>
             </div>
 
@@ -122,9 +114,9 @@ export default function HomePage() {
                 <span className="text-[11px] font-mono uppercase text-dim tracking-wider">Tahap 02</span>
                 <span className="w-2 h-2 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
               </div>
-              <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-ink transition-colors">Lengkapi detail</h3>
+              <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-ink transition-colors">Jawab detail teknis</h3>
               <p className="text-xs text-muted leading-relaxed">
-                Pilih atau ketik preferensi tech stack, database, target audiens, dan integrasi pihak ketiga.
+                AI menanyakan hal penting: metode autentikasi, kalkulasi ongkir, dan alur verifikasi penjual.
               </p>
             </div>
 
@@ -133,9 +125,9 @@ export default function HomePage() {
                 <span className="text-[11px] font-mono uppercase text-dim tracking-wider">Tahap 03</span>
                 <span className="w-2 h-2 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
               </div>
-              <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-ink transition-colors">Edit & revisi</h3>
+              <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-ink transition-colors">Revisi dengan kalimat biasa</h3>
               <p className="text-xs text-muted leading-relaxed">
-                Lihat draf PRD yang disusun AI dan berikan instruksi revisi instan jika ada yang ingin disesuaikan.
+                Draf langsung tersusun. Minta penyesuaian seperti "Tambahkan fitur ulasan pembeli di sprint 3".
               </p>
             </div>
 
@@ -144,9 +136,9 @@ export default function HomePage() {
                 <span className="text-[11px] font-mono uppercase text-dim tracking-wider">Tahap 04</span>
                 <span className="w-2 h-2 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
               </div>
-              <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-ink transition-colors">Download & bagikan</h3>
+              <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-ink transition-colors">Unduh & bagikan</h3>
               <p className="text-xs text-muted leading-relaxed">
-                Tinggal salin teks ke clipboard atau unduh file format Markdown (.md) dan PDF untuk developer.
+                Salin teks, ekspor Markdown (.md), cetak PDF, atau pakai link publik yang bisa dibaca langsung oleh Cursor dan Claude Code.
               </p>
             </div>
           </div>
@@ -158,10 +150,10 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-radial from-primary/10 via-transparent to-transparent opacity-50 pointer-events-none" />
         <div className="max-w-xl mx-auto flex flex-col items-center relative z-10">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 text-white">
-            Mau coba buat PRD tanpa ribet sekarang?
+            Coba dengan ide yang sedang kamu kerjakan
           </h2>
           <p className="text-sm md:text-base text-muted mb-8 leading-relaxed">
-            Create PRD otomatis, cepat, rapi, dan langsung bisa dieksekusi oleh tim engineering.
+            Akun baru dapat 3 kredit gratis yang terisi ulang tiap 24 jam.
           </p>
           <Link
             href="/app"

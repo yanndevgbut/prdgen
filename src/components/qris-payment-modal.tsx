@@ -168,7 +168,7 @@ export function QRISPaymentModal({
     setFormError(null);
 
     if (!email.trim()) {
-      setFormError("Harap masukkan alamat email Anda.");
+      setFormError("Masukkan alamat emailmu.");
       return;
     }
 
@@ -345,7 +345,7 @@ export function QRISPaymentModal({
           "Status masih menunggu. Pastikan QR sudah dipindai dan pembayaran berstatus Sukses."
       );
     } catch (err) {
-      setManualStatusMsg("Gagal memeriksa status. Periksa koneksi internet Anda.");
+      setManualStatusMsg("Gagal memeriksa status. Cek koneksi internetmu lalu coba lagi.");
       setUpstreamError("Tidak dapat menghubungi server pembayaran.");
     } finally {
       setManualChecking(false);
@@ -404,7 +404,7 @@ export function QRISPaymentModal({
             {/* Input Email Manual */}
             <div>
               <label className="block text-xs font-semibold text-white mb-1" htmlFor="order-email">
-                Alamat Email Anda
+                Alamat Email
               </label>
               <input
                 id="order-email"
@@ -538,7 +538,7 @@ export function QRISPaymentModal({
                 <div>
                   <h4 className="text-base font-bold text-white mb-1">Pembayaran Berhasil Diterima!</h4>
                   <p className="text-xs text-muted max-w-xs mx-auto">
-                    Paket akun Anda telah aktif sebagai <strong className="text-ink uppercase">{qrisData.plan}</strong>.
+                    Paket akunmu sekarang aktif sebagai <strong className="text-ink uppercase">{qrisData.plan}</strong>.
                   </p>
                 </div>
                 <div className="pt-2">
@@ -616,7 +616,7 @@ export function QRISPaymentModal({
                 {/* Status Live Polling Indicator */}
                 <div className="flex items-center justify-center gap-2 py-1.5 px-3 bg-bg-input border border-border rounded-lg text-xs text-muted">
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                  <span>Menunggu pembayaran Anda...</span>
+                  <span>Menunggu pembayaranmu...</span>
                 </div>
 
                 {/* Identitas Transaksi + Last Check */}

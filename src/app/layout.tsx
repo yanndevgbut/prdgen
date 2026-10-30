@@ -13,19 +13,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: `${BRAND_NAME} | ${BRAND_TAGLINE}`,
   description:
-    "Create PRD / buat dokumen Product Requirements Document (PRD) otomatis dan terstruktur dengan AI. Web bikin PRD tanpa ribet, siap dibagikan ke tim developer.",
-  keywords: [
-    "create PRD",
-    "buat PRD tanpa ribet",
-    "web bikin PRD",
-    "PRD generator",
-    "product requirements document",
-    "dokumen PRD AI",
-    "aplikasi buat PRD",
-    "contoh PRD",
-    "bikin PRD otomatis",
-    "template PRD",
-  ],
+    "Tulis ide produk dalam beberapa kalimat. PRDGen menyusun PRD 14 bab lengkap berisi user flow, skema database, dan daftar tugas sprint, siap diunduh sebagai Markdown atau PDF.",
   robots: {
     index: true,
     follow: true,
@@ -35,7 +23,7 @@ export const metadata: Metadata = {
     url: siteUrl,
     title: `${BRAND_NAME} | ${BRAND_TAGLINE}`,
     description:
-      "Create PRD / buat dokumen Product Requirements Document (PRD) otomatis dan terstruktur dengan AI. Web bikin PRD tanpa ribet.",
+      "Tulis ide produk dalam beberapa kalimat. PRDGen menyusun PRD 14 bab lengkap berisi user flow, skema database, dan daftar tugas sprint, siap diunduh sebagai Markdown atau PDF.",
     siteName: BRAND_NAME,
     locale: "id_ID",
     images: [
@@ -43,7 +31,7 @@ export const metadata: Metadata = {
         url: "/icon.png",
         width: 512,
         height: 512,
-        alt: `${BRAND_NAME}, Buat PRD Tanpa Ribet`,
+        alt: `${BRAND_NAME}, ${BRAND_TAGLINE}`,
       },
     ],
   },
@@ -51,7 +39,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: `${BRAND_NAME} | ${BRAND_TAGLINE}`,
     description:
-      "Create PRD / buat dokumen PRD otomatis dengan AI. Web bikin PRD tanpa ribet.",
+      "Tulis ide produk dalam beberapa kalimat. PRDGen menyusun PRD 14 bab lengkap berisi user flow, skema database, dan daftar tugas sprint, siap diunduh sebagai Markdown atau PDF.",
     images: ["/icon.png"],
   },
   icons: {
@@ -67,7 +55,7 @@ const organizationJsonLd = {
   name: BRAND_NAME,
   url: siteUrl,
   logo: `${siteUrl}/icon.png`,
-  slogan: "Buat PRD Tanpa Ribet",
+  slogan: BRAND_TAGLINE,
 };
 
 const websiteJsonLd = {
@@ -75,7 +63,7 @@ const websiteJsonLd = {
   "@type": "WebSite",
   name: BRAND_NAME,
   url: siteUrl,
-  description: BRAND_TAGLINE + ".",
+  description: `${BRAND_NAME} membantu tim produk menyusun PRD 14 bab terstruktur dalam bahasa Indonesia.`,
 };
 
 export default function RootLayout({
